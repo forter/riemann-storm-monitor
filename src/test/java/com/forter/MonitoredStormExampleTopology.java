@@ -1,3 +1,5 @@
+package com.forter;
+
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.spout.SpoutOutputCollector;
