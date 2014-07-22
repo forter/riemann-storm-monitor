@@ -44,16 +44,13 @@
             <executions>
                 <execution>
                     <goals>
-                        <goal>exec</goal>
+                        <goal>java</goal>
                     </goals>
                 </execution>
             </executions>
             <configuration>
-                <executable>java</executable>
-                <includeProjectDependencies>true</includeProjectDependencies>
-                <includePluginDependencies>false</includePluginDependencies>
-                <classpathScope>test</classpathScope>
                 <mainClass>com.forter.MonitoredStormExampleTopology</mainClass>
+                <classpathScope>test</classpathScope>
             </configuration>
         </plugin>
     </plugins>
