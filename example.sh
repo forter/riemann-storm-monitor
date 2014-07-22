@@ -1,1 +1,1 @@
-mvn package compile exec:java
+mvn clean package exec:java
