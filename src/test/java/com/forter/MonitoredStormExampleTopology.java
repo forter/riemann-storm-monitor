@@ -21,80 +21,10 @@ import java.util.Map;
 
 public class MonitoredStormExampleTopology {
 
-    public static class MonitoredSpout extends BaseRichSpout {
-        private SpoutOutputCollector collector;
-        private int lastId = 0;
-        private final Map<Integer,Long> startTimestampPerId = Maps.newHashMap();
-
-        private void sendRiemannLatency(long latency, Exception ex) throws IOException {
-            RiemannClient client = RiemannClient.tcp( "127.0.0.1", 5555);
-            client.connect();
-            client.event().service("latency measuring storm").state(ex==null ? "success" : "failure").metric(latency).tags("latency").send();
-            client.disconnect();
-        }
-        //new com.forter.RiemannDiscovery().describeInstancesByName("develop-riemann-instance")
-
-        @Override
-        public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
-            this.collector = collector;
-        }
-
-        @Override
-        public void nextTuple() {
-            this.collector.emit(new Values(""), lastId);
-            this.startTimestampPerId.put(lastId, System.nanoTime());
-            lastId++;
-        }
-
-        @Override
-        public void ack(Object id) {
-            long elapsed = (System.nanoTime() - startTimestampPerId.get(id)) / 1000000;
-            try {
-                sendRiemannLatency(elapsed, null);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        @Override
-        public void fail(Object id) {
-            long elapsed = (System.nanoTime() - startTimestampPerId.get(id)) / 1000000;
-            try {
-                sendRiemannLatency(elapsed, new RuntimeException("Storm sent fail. No stack trace."));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        @Override
-        public void declareOutputFields(OutputFieldsDeclarer declarer) {
-            declarer.declare(new Fields("word"));
-        }
-    }
-
-    public static class NopBolt extends BaseBasicBolt {
-
-        @Override
-        public void execute(Tuple tuple, BasicOutputCollector collector) {
-            try {
-                Thread.sleep(1000);
-            }
-            catch(Exception e) {
-
-            }
-
-        }
-
-        @Override
-        public void declareOutputFields(OutputFieldsDeclarer declarer) {
-            declarer.declare(new Fields("word"));
-        }
-    }
-
     public static void main(String[] args) throws Exception {
         TopologyBuilder builder = new TopologyBuilder();
         builder.setSpout("spout", new MonitoredSpout(), 1);
-        builder.setBolt("bolt", new NopBolt(), 1).localOrShuffleGrouping("spout");
+        builder.setBolt("bolt", new MonitoredBolt(), 1).localOrShuffleGrouping("spout");
 
         Config conf = new Config();
         conf.setDebug(false);
