@@ -13,6 +13,8 @@ import backtype.storm.tuple.Values;
 import com.aphyr.riemann.client.RiemannClient;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import sun.security.jca.GetInstance;
 
 import java.io.IOException;
@@ -26,6 +28,8 @@ public class MonitoredTopology {
         private final Map<Integer,Long> startTimestampPerId = Maps.newHashMap();
         private String riemannIP;
         private RiemannClient client;
+        private final Logger logger = LoggerFactory.getLogger(this.getClass());
+
 
         private void sendRiemannLatency(long latency, Exception ex) throws IOException {
             client.event().service("latency measuring storm").state(ex==null ? "success" : "failure").metric(latency).tags("latency").send();
@@ -34,6 +38,8 @@ public class MonitoredTopology {
 
         @Override
         public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
+            logger.debug("HELLO DEBUG");
+            logger.info("HELLO INFO");
             RiemannDiscovery discover = new RiemannDiscovery();
             String machinePrefix = null;
             try {
