@@ -1,5 +1,7 @@
 package com.forter;
 
+import com.amazonaws.auth.AWSCredentialsProviderChain;
+import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
 import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2Client;
@@ -21,7 +23,7 @@ public class RiemannDiscovery {
     private final AmazonEC2 ec2Client;
 
     public RiemannDiscovery() {
-        ec2Client = new AmazonEC2Client(new InstanceProfileCredentialsProvider());
+        ec2Client = new AmazonEC2Client(new AWSCredentialsProviderChain(new InstanceProfileCredentialsProvider(), new EnvironmentVariableCredentialsProvider()));
     }
 
     public static String retrieveInstanceId() throws IOException {
@@ -72,7 +74,7 @@ public class RiemannDiscovery {
 
         return describeInstances(
                 new DescribeInstancesRequest().withFilters(
-                        new Filter().withName("tag:name").withValues(name)));
+                        new Filter().withName("tag:Name").withValues(name)));
     }
 
     private Iterable<Instance> describeInstances(DescribeInstancesRequest request) {

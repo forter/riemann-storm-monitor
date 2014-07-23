@@ -7,6 +7,7 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
+import com.amazonaws.services.ec2.model.Instance;
 import com.aphyr.riemann.client.RiemannClient;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -37,8 +38,10 @@ public class MonitoredSpout extends BaseRichSpout {
         RiemannDiscovery discover = new RiemannDiscovery();
         String machinePrefix = null;
         try {
-            machinePrefix = ( discover.retrieveName().startsWith("prod") ? "prod-" : "develop-");
-            riemannIP = Iterables.get(discover.describeInstancesByName(machinePrefix + "riemann-instance"), 0).getPrivateIpAddress();
+            machinePrefix ="develop-";//( discover.retrieveName().startsWith("prod") ? "prod-" : "develop-");
+            Iterable<Instance> x = discover.describeInstancesByName(machinePrefix+"riemann-instance");
+            Instance i = Iterables.get( x , 0);
+            riemannIP = i.getPublicIpAddress();
             client = RiemannClient.tcp(riemannIP, 5555);
             client.connect();
         } catch (IOException e) {
