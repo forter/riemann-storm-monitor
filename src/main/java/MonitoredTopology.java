@@ -11,7 +11,9 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 import com.aphyr.riemann.client.RiemannClient;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import sun.security.jca.GetInstance;
 
 import java.io.IOException;
 import java.util.Map;
@@ -22,18 +24,37 @@ public class MonitoredTopology {
         private SpoutOutputCollector collector;
         private int lastId = 0; //TODO: WHEN THERE WILL BE MORE THAN ONE CONCURRENT SPOUT, CHANGE THIS TO A STATIC VARIABLE
         private final Map<Integer,Long> startTimestampPerId = Maps.newHashMap();
+        private String riemannIP;
+        private RiemannClient client;
 
         private void sendRiemannLatency(long latency, Exception ex) throws IOException {
-            RiemannClient client = RiemannClient.tcp( "127.0.0.1", 5555);
-            client.connect();
             client.event().service("latency measuring storm").state(ex==null ? "success" : "failure").metric(latency).tags("latency").send();
-            client.disconnect();
         }
 
 
         @Override
         public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
+            RiemannDiscovery discover = new RiemannDiscovery();
+            String machinePrefix = null;
+            try {
+                machinePrefix = ( discover.retrieveName().startsWith("prod") ? "prod-" : "develop-");
+                riemannIP = Iterables.get(discover.describeInstancesByName(machinePrefix+"riemann-instance"), 0).getPrivateIpAddress();
+                client = RiemannClient.tcp(riemannIP, 5555);
+                client.connect();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             this.collector = collector;
+        }
+
+        @Override
+        public void close() {
+            try {
+                client.disconnect();
+            } catch (IOException e) {
+                    e.printStackTrace();
+            }
+            super.close();
         }
 
         @Override

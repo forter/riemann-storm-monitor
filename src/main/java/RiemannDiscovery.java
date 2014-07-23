@@ -44,7 +44,7 @@ public class RiemannDiscovery {
         return result;
     }
 
-    private String retrieveName() throws IOException {
+    public String retrieveName() throws IOException {
         final String instanceId = retrieveInstanceId();
         final Instance instance = describeInstanceById(instanceId);
         return getInstanceName(instance);
