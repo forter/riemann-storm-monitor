@@ -23,7 +23,7 @@ public class MonitoredStormExampleTopology {
 
     public static class MonitoredSpout extends BaseRichSpout {
         private SpoutOutputCollector collector;
-        private int lastId = 0; //TODO: WHEN THERE WILL BE MORE THAN ONE CONCURRENT SPOUT, CHANGE THIS TO A STATIC VARIABLE
+        private int lastId = 0;
         private final Map<Integer,Long> startTimestampPerId = Maps.newHashMap();
 
         private void sendRiemannLatency(long latency, Exception ex) throws IOException {
@@ -32,7 +32,7 @@ public class MonitoredStormExampleTopology {
             client.event().service("latency measuring storm").state(ex==null ? "success" : "failure").metric(latency).tags("latency").send();
             client.disconnect();
         }
-        //new RiemannDiscovery().describeInstancesByName("develop-riemann-instance")
+        //new com.forter.RiemannDiscovery().describeInstancesByName("develop-riemann-instance")
 
         @Override
         public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {

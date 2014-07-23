@@ -61,14 +61,23 @@
             <executions>
                 <execution>
                     <goals>
-                        <goal>java</goal>
+                        <goal>exec</goal>
                     </goals>
                 </execution>
             </executions>
             <configuration>
-                <mainClass>com.forter.MonitoredStormExampleTopology</mainClass>
-                <classpathScope>test</classpathScope>
-            </configuration>
+              <executable>java</executable>
+              <classpathScope>test</classpathScope>
+              <arguments>
+                <argument>-classpath</argument>
+                <!-- automatically creates the classpath using all project dependencies,
+                     also adding the project build directory -->
+                <classpath/>
+                <!-- automatically creates the classpath using all project dependencies,
+                     also adding the project build directory -->
+                <argument>com.forter.MonitoredStormExampleTopology</argument>
+              </arguments>
+        </configuration>
         </plugin>
     </plugins>
   </build>
