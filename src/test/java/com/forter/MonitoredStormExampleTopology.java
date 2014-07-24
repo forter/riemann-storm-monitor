@@ -32,7 +32,7 @@ public class MonitoredStormExampleTopology {
         LocalCluster cluster = new LocalCluster();
         cluster.submitTopology("test", conf, builder.createTopology());
 
-        Thread.sleep(60*1000);
+        Thread.sleep(6000*1000);
         cluster.shutdown();
     }
 }

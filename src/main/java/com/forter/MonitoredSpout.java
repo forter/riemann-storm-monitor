@@ -33,15 +33,11 @@ public class MonitoredSpout extends BaseRichSpout {
 
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
-        logger.debug("HELLO DEBUG");
-        logger.info("HELLO INFO");
         RiemannDiscovery discover = new RiemannDiscovery();
         String machinePrefix = null;
         try {
             machinePrefix ="develop-";//( discover.retrieveName().startsWith("prod") ? "prod-" : "develop-");
-            Iterable<Instance> x = discover.describeInstancesByName(machinePrefix+"riemann-instance");
-            Instance i = Iterables.get( x , 0);
-            riemannIP = i.getPublicIpAddress();
+            riemannIP = (Iterables.get( discover.describeInstancesByName(machinePrefix+"riemann-instance"), 0)).getPrivateIpAddress();
             client = RiemannClient.tcp(riemannIP, 5555);
             client.connect();
         } catch (IOException e) {
