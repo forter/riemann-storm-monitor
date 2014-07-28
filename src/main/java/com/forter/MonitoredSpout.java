@@ -10,19 +10,6 @@ import java.util.List;
 import java.util.Map;
 
 public class MonitoredSpout implements IRichSpout {
-    public static class MonitoringMessage {
-        public Object id;
-        public String service;
-
-
-        public MonitoringMessage(Object id, String service) {
-            this.id = id;
-            this.service = service;
-
-        }
-
-    }
-
     private IRichSpout delegate;
 
     public MonitoredSpout(IRichSpout delegate) {
