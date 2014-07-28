@@ -1,90 +1,103 @@
 /*** Created by yaniv on 23/07/14.*/
 
 package com.forter;
+
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
+import backtype.storm.topology.IRichBolt;
+import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.topology.base.BaseRichSpout;
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.Values;
-import com.amazonaws.services.ec2.model.Instance;
-import com.aphyr.riemann.client.RiemannClient;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
+import java.util.List;
 import java.util.Map;
+import com.forter.Monitor;
 
+public class MonitoredSpout implements IRichSpout {
+    public static class MonitoringMessage {
+        public Object id;
+        public String service;
+        public long startTime;
 
-public class MonitoredSpout extends BaseRichSpout {
-    private SpoutOutputCollector collector;
-    private int lastId = 0; //TODO: WHEN THERE WILL BE MORE THAN ONE CONCURRENT SPOUT, CHANGE THIS TO A STATIC VARIABLE
-    private final Map<Integer,Long> startTimestampPerId = Maps.newHashMap();
-    private String riemannIP;
-    private RiemannClient client;
-    private final Logger logger = LoggerFactory.getLogger(this.getClass());
+        public MonitoringMessage(Object id, String service, long startTime) {
+            this.id = id;
+            this.service = service;
+            this.startTime = startTime;
+        }
 
-    private void sendRiemannLatency(long latency, Exception ex) throws IOException {
-        client.event().service("latency measuring storm").state(ex==null ? "success" : "failure").metric(latency).tags("latency").send();
     }
 
 
+    private IRichSpout delegate;
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
+
+    public MonitoredSpout(IRichSpout delegate) {
+        this.delegate = delegate;
+    }
+
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
-        RiemannDiscovery discover = new RiemannDiscovery();
-        String machinePrefix = null;
-        try {
-            machinePrefix ="develop-";//( discover.retrieveName().startsWith("prod") ? "prod-" : "develop-");
-            riemannIP = (Iterables.get( discover.describeInstancesByName(machinePrefix+"riemann-instance"), 0)).getPrivateIpAddress();
-            client = RiemannClient.tcp(riemannIP, 5555);
-            client.connect();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        this.collector = collector;
+        //if(!Monitor.connection.client.isConnected())
+            //Monitor.connection.connect();
+
+        delegate.open(conf, context, new SpoutOutputCollector(collector) {
+            @Override
+            public List<Integer> emit(String streamId, List<Object> tuple, Object messageId) {
+                return super.emit(streamId, tuple, newStreamMessageId(streamId, messageId));
+            }
+
+            @Override
+            public void emitDirect(int taskId, String streamId, List<Object> tuple, Object messageId) {
+                super.emitDirect(taskId, streamId, tuple, newStreamMessageId(streamId, messageId));
+            }
+
+            private MonitoringMessage newStreamMessageId(String stream, Object messageId) {
+                return new MonitoringMessage(messageId, stream, System.nanoTime());
+            }
+        });
     }
 
     @Override
     public void close() {
-        try {
-            client.disconnect();
-        } catch (IOException e) {
-                e.printStackTrace();
-        }
-        super.close();
+        delegate.close();
     }
 
     @Override
     public void nextTuple() {
-        this.collector.emit(new Values(""), lastId);
-        this.startTimestampPerId.put(lastId, System.nanoTime());
-        lastId++;
+        delegate.nextTuple();
     }
 
     @Override
     public void ack(Object id) {
-        long elapsed = (System.nanoTime() - startTimestampPerId.get(id)) / 1000000;
-        try {
-            sendRiemannLatency(elapsed, null);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        logger.info("THE LATENCY OF SERVICE " + ((MonitoringMessage)id).id + " IS " +(System.nanoTime() - ((MonitoringMessage)id).startTime) / 1000000);
+
+        delegate.ack(id);
     }
 
     @Override
     public void fail(Object id) {
-        long elapsed = (System.nanoTime() - startTimestampPerId.get(id)) / 1000000;
-        try {
-            sendRiemannLatency(elapsed, new RuntimeException("Storm sent fail. No stack trace."));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        logger.info("THE FAILED LATENCY OF SERVICE " + ((MonitoringMessage)id).id + " IS " +(System.nanoTime() - ((MonitoringMessage)id).startTime) / 1000000);
+        delegate.fail(id);
+    }
+
+    @Override
+    public void activate() {
+        delegate.activate();
+    }
+
+    @Override
+    public void deactivate() {
+        delegate.deactivate();
     }
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declare(new Fields("word"));
+        delegate.declareOutputFields(declarer);
+    }
+
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
+        return delegate.getComponentConfiguration();
     }
 }
