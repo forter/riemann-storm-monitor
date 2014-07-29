@@ -8,7 +8,7 @@ import java.util.Map;
 /*** Created by yaniv on 27/07/14.*/
 
 public class Monitor {
-    private static final Map<Integer,Long> startTimestampPerId = Maps.newHashMap();
+    private static final Map<Object ,Long> startTimestampPerId = Maps.newHashMap();
     public static final RiemannConnection connection = new RiemannConnection();
 
     private static void sendLatency(long latency, String service, RuntimeException er) {
@@ -21,7 +21,7 @@ public class Monitor {
     }
 
     public static void startLatency(Object messageId) {
-        startTimestampPerId.put((Integer) messageId, System.nanoTime());
+        startTimestampPerId.put(messageId, System.nanoTime());
     }
 
     public static void endLatency(Object id, String service, RuntimeException er) {
