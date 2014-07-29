@@ -17,7 +17,7 @@ public class MonitoredSpout implements IRichSpout {
     }
 
     @Override
-    public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
+    public void open(Map conf, final TopologyContext context, SpoutOutputCollector collector) {
         if(Monitor.connection.client == null || !Monitor.connection.client.isConnected())
             Monitor.connection.connect();
 
@@ -25,16 +25,13 @@ public class MonitoredSpout implements IRichSpout {
             @Override
             public List<Integer> emit(String streamId, List<Object> tuple, Object messageId) {
                 Monitor.startLatency(messageId);
-                return super.emit(streamId, tuple, newStreamMessageId(streamId, messageId));
+                return super.emit(streamId, tuple, new MonitoringMessage(messageId, context.getThisComponentId()));
             }
 
             @Override
             public void emitDirect(int taskId, String streamId, List<Object> tuple, Object messageId) {
                 Monitor.startLatency(messageId);
-                super.emitDirect(taskId, streamId, tuple, newStreamMessageId(streamId, messageId));
-            }
-            private MonitoringMessage newStreamMessageId(String stream, Object messageId) {
-                return new MonitoringMessage(messageId, stream);
+                super.emitDirect(taskId, streamId, tuple, new MonitoringMessage(messageId, context.getThisComponentId()));
             }
         });
     }

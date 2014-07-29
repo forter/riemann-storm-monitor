@@ -12,8 +12,9 @@ public class RiemannConnection {
     public void connect() {
         RiemannDiscovery discover = new RiemannDiscovery();
         try {
-            String machinePrefix = (discover.retrieveName().startsWith("prod") ? "prod" : "develop");
-            riemannIP = (Iterables.get(discover.describeInstancesByName(machinePrefix + "-riemann-instance"), 0)).getPrivateIpAddress();
+            //String machinePrefix = (discover.retrieveName().startsWith("prod") ? "prod" : "develop");
+            //riemannIP = (Iterables.get(discover.describeInstancesByName(machinePrefix + "-riemann-instance"), 0)).getPrivateIpAddress();
+            riemannIP = "127.0.0.1";
             client = RiemannClient.tcp(riemannIP, 5555);
             client.connect();
         } catch (IOException e) {

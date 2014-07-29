@@ -9,7 +9,6 @@ public class MonitoringMessage {
     public MonitoringMessage(Object id, String service) {
         this.id = id;
         this.service = service;
-
     }
 
 }

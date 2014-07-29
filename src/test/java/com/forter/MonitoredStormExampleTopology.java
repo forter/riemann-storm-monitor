@@ -10,12 +10,11 @@ import backtype.storm.topology.base.BaseBasicBolt;
 import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.tuple.Fields;
+import backtype.storm.tuple.MessageId;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 
 import java.util.Map;
-
-
 
 
 public class MonitoredStormExampleTopology {
@@ -31,8 +30,7 @@ public class MonitoredStormExampleTopology {
 
         @Override
         public void nextTuple() {
-            final int messageId = lastId++;
-            _collector.emit(new Values(""), messageId);
+            _collector.emit(new Values(""), lastId++);
         }
 
         @Override
@@ -50,28 +48,32 @@ public class MonitoredStormExampleTopology {
 
     }
 
-    public static class MockBolt extends BaseBasicBolt {
+    public static class MockBolt extends BaseRichBolt {
         @Override
-        public void execute(Tuple tuple, BasicOutputCollector collector) {
+        public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer) {
+            outputFieldsDeclarer.declare(new Fields("word"));
+        }
+
+        @Override
+        public void prepare(Map map, TopologyContext topologyContext, OutputCollector outputCollector) {
+
+        }
+
+        @Override
+        public void execute(Tuple tuple) {
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
-
-        @Override
-        public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer) {
-            outputFieldsDeclarer.declare(new Fields("word"));
-        }
     }
-
 
     public static void main(String[] args) throws Exception {
 
         TopologyBuilder builder = new TopologyBuilder();
-        builder.setSpout("spout",new MonitoredSpout(new MockSpout()), 1);
-        builder.setBolt("bolt", new MockBolt(), 1).localOrShuffleGrouping("spout");
+        builder.setSpout("ItaiSpout",new MonitoredSpout(new MockSpout()), 1);
+        builder.setBolt("myBolt", new MockBolt(), 1).localOrShuffleGrouping("ItaiSpout");
 
         Config conf = new Config();
         conf.setDebug(false);

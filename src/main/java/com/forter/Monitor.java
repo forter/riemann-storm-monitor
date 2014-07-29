@@ -1,5 +1,6 @@
 package com.forter;
 
+import backtype.storm.tuple.MessageId;
 import com.google.common.collect.Maps;
 
 import java.util.Map;
@@ -11,11 +12,16 @@ public class Monitor {
     public static final RiemannConnection connection = new RiemannConnection();
 
     private static void sendLatency(long latency, String service, RuntimeException er) {
-        connection.client.event().metric(latency).service(service).tags("storm", "latency").state((latency > 3000 || er != null) ? "BAD" : "GOOD").send();
+        connection.client.event()
+                .description("This is a storm latency.")
+                .metric(latency)
+                .service(service)
+                .tags("storm", "latency")
+                .state((latency > 3000 || er != null) ? "failure" : "success").send();
     }
 
     public static void startLatency(Object messageId) {
-        startTimestampPerId.put((Integer)messageId, System.nanoTime());
+        startTimestampPerId.put((Integer) messageId, System.nanoTime());
     }
 
     public static void endLatency(Object id, String service, RuntimeException er) {

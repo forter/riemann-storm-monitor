@@ -33,21 +33,22 @@ public class MonitoredBolt implements IRichBolt {
     }
 
     @Override
-    public void prepare(Map map, TopologyContext topologyContext, OutputCollector outputCollector) {
+    public void prepare(Map conf, final TopologyContext context, OutputCollector collector) {
         if(Monitor.connection.client == null || !Monitor.connection.client.isConnected())
             Monitor.connection.connect();
 
-        delegate.prepare(map, topologyContext, new OutputCollector(outputCollector) {
+        delegate.prepare(conf, context, new OutputCollector(collector) {
             @Override
             public List<Integer> emit(String streamId, Collection<Tuple> anchors, List<Object> tuple) {
-                return super.emit(streamId, anchors, tuple);
+                return super.emit(context.getThisComponentId(), anchors, tuple);
             }
 
             @Override
             public void emitDirect(int taskId, String streamId, Collection<Tuple> anchors, List<Object> tuple) {
-                super.emitDirect(taskId, streamId, anchors, tuple);
+                super.emitDirect(taskId, context.getThisComponentId(), anchors, tuple);
             }
         });
+
     }
 
     @Override
