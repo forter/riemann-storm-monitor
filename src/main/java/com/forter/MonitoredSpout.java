@@ -6,14 +6,11 @@ import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.OutputFieldsDeclarer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 
 public class MonitoredSpout implements IRichSpout {
     private IRichSpout delegate;
-    private Logger logger = LoggerFactory.getLogger("KUKU");
 
     public MonitoredSpout(IRichSpout delegate) {
         this.delegate = delegate;
@@ -51,7 +48,6 @@ public class MonitoredSpout implements IRichSpout {
 
     @Override
     public void ack(Object id) {
-        logger.info("ACK");
         Monitor.endLatency(((MonitoringMessage)id).id, ((MonitoringMessage)id).service, null);
         delegate.ack(id);
     }

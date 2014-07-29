@@ -1,8 +1,6 @@
 package com.forter;
 
-import backtype.storm.tuple.MessageId;
 import com.google.common.collect.Maps;
-
 import java.util.Map;
 
 /*** Created by yaniv on 27/07/14.*/
