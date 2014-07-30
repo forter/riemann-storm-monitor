@@ -10,6 +10,7 @@ import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
+import com.google.common.base.Throwables;
 
 import java.util.Map;
 
@@ -17,17 +18,17 @@ import java.util.Map;
 public class MonitoredStormExampleTopology {
 
     public static class MockSpout extends BaseRichSpout {
-        private SpoutOutputCollector _collector;
+        private SpoutOutputCollector collector;
         private int lastId = 0;
 
         @Override
         public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
-            _collector = collector;
+            this.collector = collector;
         }
 
         @Override
         public void nextTuple() {
-            _collector.emit(new Values(""), lastId++);
+            collector.emit(new Values(""), lastId++);
         }
 
         @Override
@@ -56,7 +57,7 @@ public class MonitoredStormExampleTopology {
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                Throwables.propagate(e);
             }
         }
     }

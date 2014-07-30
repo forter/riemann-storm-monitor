@@ -1,28 +1,43 @@
 package com.forter;
-
 import com.google.common.collect.Maps;
 import java.util.Map;
 
-/*** Created by yaniv on 27/07/14.*/
-
+/*
+This singleton class centralizes the storm-monitoring functions.
+The monitored bolts and spouts will use the functions in this class.
+ */
 public class Monitor {
-    private static final Map<Object ,Long> startTimestampPerId = Maps.newHashMap();
-    public static final RiemannConnection connection = new RiemannConnection();
+    private static Monitor singleton = new Monitor();
 
-    private static void sendLatency(long latency, String service, RuntimeException er) {
-        connection.client.event()
+    private final Map<Object, Long> startTimestampPerId;
+    private final RiemannConnection connection;
+
+    private Monitor() {
+        startTimestampPerId = Maps.newHashMap();
+        connection = new RiemannConnection();
+        connection.connect();
+    }
+
+    public static Monitor getMonitor() {
+        if(singleton == null)
+            singleton = new Monitor();
+        return singleton;
+    }
+
+    private void sendLatency(long latency, String service, Throwable er) {
+        connection.getClient().event()
                 .description("This is a storm latency.")
                 .metric(latency)
                 .service(service)
                 .tags("storm", "latency")
-                .state((latency > 3000 || er != null) ? "failure" : "success").send();
+                .state(er == null ? "success" : "failure").send();
     }
 
-    public static void startLatency(Object messageId) {
+    public void startLatency(Object messageId) {
         startTimestampPerId.put(messageId, System.nanoTime());
     }
 
-    public static void endLatency(Object id, String service, RuntimeException er) {
+    public void endLatency(Object id, String service, Throwable er) {
         long elapsed = (System.nanoTime() - startTimestampPerId.get(id)) / 1000000;
         sendLatency(elapsed, service, er);
     }

@@ -1,7 +1,4 @@
-/*** Created by yaniv on 23/07/14.*/
-
 package com.forter;
-
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichSpout;
@@ -9,29 +6,37 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import java.util.List;
 import java.util.Map;
 
+
+/*
+This class creates a monitored wrapper around other spout classes.
+The usage is -
+MonitoredSpout ms = new MonitoredSpout(new SpoutToMonitor());
+*/
 public class MonitoredSpout implements IRichSpout {
     private IRichSpout delegate;
+    private String spoutService;
+    private Monitor monitor;
 
     public MonitoredSpout(IRichSpout delegate) {
+        this.monitor = Monitor.getMonitor();
         this.delegate = delegate;
     }
 
     @Override
     public void open(Map conf, final TopologyContext context, SpoutOutputCollector collector) {
-        if(Monitor.connection.client == null || !Monitor.connection.client.isConnected())
-            Monitor.connection.connect();
-
+        spoutService = context.getThisComponentId();
         delegate.open(conf, context, new SpoutOutputCollector(collector) {
             @Override
             public List<Integer> emit(String streamId, List<Object> tuple, Object messageId) {
-                Monitor.startLatency(messageId);
-                return super.emit(streamId, tuple, new MonitoringMessage(messageId, context.getThisComponentId()));
+                List<Integer> emitResult = super.emit(streamId, tuple, messageId);
+                monitor.startLatency(messageId);
+                return emitResult;
             }
 
             @Override
             public void emitDirect(int taskId, String streamId, List<Object> tuple, Object messageId) {
-                Monitor.startLatency(messageId);
-                super.emitDirect(taskId, streamId, tuple, new MonitoringMessage(messageId, context.getThisComponentId()));
+                super.emitDirect(taskId, streamId, tuple, messageId);
+                monitor.startLatency(messageId);
             }
         });
     }
@@ -48,13 +53,13 @@ public class MonitoredSpout implements IRichSpout {
 
     @Override
     public void ack(Object id) {
-        Monitor.endLatency(((MonitoringMessage)id).id, ((MonitoringMessage)id).service, null);
+        monitor.endLatency(id, spoutService, null /*error = null*/ );
         delegate.ack(id);
     }
 
     @Override
     public void fail(Object id) {
-        Monitor.endLatency(((MonitoringMessage)id).id, ((MonitoringMessage)id).service, new RuntimeException("Storm failed."));
+        monitor.endLatency(id, spoutService, new Throwable("Storm failed."));
         delegate.fail(id);
     }
 
