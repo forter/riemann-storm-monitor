@@ -14,7 +14,10 @@ import com.google.common.base.Throwables;
 
 import java.util.Map;
 
-
+/*
+This class is a testing class.
+It defined two inner classes - a mock bolt and a mock spout. this classes are the bases for the monitoring wrappers.
+ */
 public class MonitoredStormExampleTopology {
 
     public static class MockSpout extends BaseRichSpout {
