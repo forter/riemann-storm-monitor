@@ -22,7 +22,7 @@ public class RiemannConnection {
                 client.connect();
             }
             catch (IOException e) {
-                Throwables.propagate(e);
+                throw Throwables.propagate(e);
             }
         }
     }

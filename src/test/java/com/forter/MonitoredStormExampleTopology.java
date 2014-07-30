@@ -60,7 +60,7 @@ public class MonitoredStormExampleTopology {
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
-                Throwables.propagate(e);
+                throw Throwables.propagate(e);
             }
         }
     }
