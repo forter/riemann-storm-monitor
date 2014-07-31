@@ -20,17 +20,26 @@ It defined two inner classes - a mock bolt and a mock spout. this classes are th
  */
 public class MonitoredStormExampleTopology {
 
-    public static class MockSpout extends BaseRichSpout {
+    public static class MockSpout extends BaseRichSpout implements IEventSenderAware{
         private SpoutOutputCollector collector;
+        private String serv;
         private int lastId = 0;
+        private IEventSender es;
+
+        @Override
+        public void setEventSender(IEventSender es) {
+            this.es = es;
+        }
 
         @Override
         public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
             this.collector = collector;
+            this.serv = context.getThisComponentId();
         }
 
         @Override
         public void nextTuple() {
+            es.sendThroughputEvent(serv, String.valueOf(lastId));
             collector.emit(new Values(""), lastId++);
         }
 
@@ -46,7 +55,6 @@ public class MonitoredStormExampleTopology {
         public void declareOutputFields(OutputFieldsDeclarer declarer) {
             declarer.declare(new Fields("word"));
         }
-
     }
 
     public static class MockBolt extends BaseBasicBolt implements IBasicBolt {
@@ -68,8 +76,8 @@ public class MonitoredStormExampleTopology {
     public static void main(String[] args) throws Exception {
 
         TopologyBuilder builder = new TopologyBuilder();
-        builder.setSpout("spout",new MonitoredSpout(new MockSpout()), 1);
-        builder.setBolt("bolt", new MonitoredBolt(new MockBolt()), 1).localOrShuffleGrouping("spout");
+        builder.setSpout("testMockSpout",new MonitoredSpout(new MockSpout()), 1);
+        builder.setBolt("testMockBolt", new MonitoredBolt(new MockBolt()), 1).localOrShuffleGrouping("testMockSpout");
 
         Config conf = new Config();
         conf.setDebug(false);

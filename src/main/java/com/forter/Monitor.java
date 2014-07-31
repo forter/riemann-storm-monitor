@@ -1,7 +1,10 @@
 package com.forter;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 import java.util.Map;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
@@ -10,34 +13,62 @@ This singleton class centralizes the storm-monitoring functions.
 The monitored bolts and spouts will use the functions in this class.
  */
 public class Monitor {
-    private static volatile transient Monitor singleton;
+    private static volatile transient Monitor singleMonitor;
 
+    private final IEventSender eventSender;
     private final Map<Object, Long> startTimestampPerId;
     private final RiemannConnection connection;
+    private final String machineName;
     private final Logger logger = LoggerFactory.getLogger("MonitorLogger");
 
+
     private Monitor() {
+        machineName = getMachineName();
+        eventSender = new IEventSender() {
+            @Override
+            public void sendThroughputEvent(String service, String messageId) {
+                try {
+                    connection.getClient().event()
+                            .metric(1)
+                            .service(machineName + ": throughput :" + service)
+                            .tags("storm", "throughput").send();
+                } catch (Throwable t) {
+                    logger.warn("Riemann error during send : " + t.getStackTrace());
+                }
+            }
+        };
         startTimestampPerId = Maps.newConcurrentMap();
         connection = new RiemannConnection();
         connection.connect();
     }
 
     public static Monitor getMonitor() {
-        if(singleton == null) {
+        if(singleMonitor == null) {
             synchronized (Monitor.class) {
-                if(singleton == null)
-                    singleton = new Monitor();
+                if(singleMonitor == null)
+                    singleMonitor = new Monitor();
             }
         }
-        return singleton;
+        return singleMonitor;
+    }
+
+    public IEventSender getEventSender() {
+        return eventSender;
+    }
+
+    private String getMachineName() {
+        try {
+            return new RiemannDiscovery().retrieveName();
+        } catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
     }
 
     private void sendLatency(long latency, String service, Throwable er) {
         try {
             connection.getClient().event()
-                    .description("This is a storm latency.")
                     .metric(latency)
-                    .service(service)
+                    .service(machineName + ": latency :" + service)
                     .tags("storm", "latency")
                     .state(er == null ? "success" : "failure").send();
         } catch(Throwable t) {

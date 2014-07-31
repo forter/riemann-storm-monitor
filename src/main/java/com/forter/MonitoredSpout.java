@@ -21,9 +21,17 @@ public class MonitoredSpout implements IRichSpout {
         this.delegate = delegate;
     }
 
+    private void setEventSender() {
+        if(delegate instanceof IEventSenderAware) {
+            ((IEventSenderAware) delegate).setEventSender(Monitor.getMonitor().getEventSender());
+        }
+    }
+
     @Override
     public void open(Map conf, final TopologyContext context, SpoutOutputCollector collector) {
         spoutService = context.getThisComponentId();
+
+        this.setEventSender();
         delegate.open(conf, context, new SpoutOutputCollector(collector) {
             @Override
             public List<Integer> emit(String streamId, List<Object> tuple, Object messageId) {
