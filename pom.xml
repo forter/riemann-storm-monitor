@@ -85,7 +85,9 @@
         <profile>
             <id>production</id>
             <activation>
-              <property>production</property>
+              <property>
+                <name>production</name>
+              </property>
             </activation>
             <dependencies>
                 <dependency>
