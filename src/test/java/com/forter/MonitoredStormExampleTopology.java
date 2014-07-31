@@ -39,7 +39,7 @@ public class MonitoredStormExampleTopology {
 
         @Override
         public void nextTuple() {
-            es.sendThroughputEvent(serv, String.valueOf(lastId));
+            es.sendThroughputEvent("nextTuple", String.valueOf(lastId));
             collector.emit(new Values(""), lastId++);
         }
 
