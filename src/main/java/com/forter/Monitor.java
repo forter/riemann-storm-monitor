@@ -30,7 +30,7 @@ public class Monitor {
                 try {
                     connection.getClient().event()
                             .metric(1)
-                            .service(machineName + ": throughput :" + service)
+                            .service(machineName + " " + service + " throughput.")
                             .tags("storm", "throughput").send();
                 } catch (Throwable t) {
                     logger.warn("Riemann error during send : " + t.getStackTrace());
@@ -68,7 +68,7 @@ public class Monitor {
         try {
             connection.getClient().event()
                     .metric(latency)
-                    .service(machineName + ": latency :" + service)
+                    .service(machineName + " " + service + " latency." )
                     .tags("storm", "latency")
                     .state(er == null ? "success" : "failure").send();
         } catch(Throwable t) {
