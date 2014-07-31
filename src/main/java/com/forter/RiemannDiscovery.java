@@ -1,3 +1,6 @@
+package com.forter;
+import com.amazonaws.auth.AWSCredentialsProviderChain;
+import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
 import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2Client;
@@ -5,21 +8,23 @@ import com.amazonaws.services.ec2.model.*;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.List;
-import java.util.regex.Pattern;
 import static java.util.Arrays.asList;
 
+/*
+This class represents the discovery of the riemann machine.
+It is possible to use it to get the IP of a machine, based on its name / id.
+*/
 public class RiemannDiscovery {
     private final AmazonEC2 ec2Client;
 
     public RiemannDiscovery() {
-        ec2Client = new AmazonEC2Client(new InstanceProfileCredentialsProvider());
+        ec2Client = new AmazonEC2Client(new AWSCredentialsProviderChain(new InstanceProfileCredentialsProvider(), new EnvironmentVariableCredentialsProvider()));
     }
 
     public static String retrieveInstanceId() throws IOException {
@@ -44,7 +49,7 @@ public class RiemannDiscovery {
         return result;
     }
 
-    private String retrieveName() throws IOException {
+    public String retrieveName() throws IOException {
         final String instanceId = retrieveInstanceId();
         final Instance instance = describeInstanceById(instanceId);
         return getInstanceName(instance);
@@ -70,7 +75,7 @@ public class RiemannDiscovery {
 
         return describeInstances(
                 new DescribeInstancesRequest().withFilters(
-                        new Filter().withName("tag:name").withValues(name)));
+                        new Filter().withName("tag:Name").withValues(name)));
     }
 
     private Iterable<Instance> describeInstances(DescribeInstancesRequest request) {
