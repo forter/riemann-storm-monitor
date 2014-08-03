@@ -42,7 +42,7 @@ public class EventSender implements IEventSender {
         try {
             connection.getClient().event().description(description).service(service).tags("uncaught-exception").send();
         } catch (Throwable t) {
-            logger.warn("Riemann error during exception send : ", t);
+            logger.warn("Riemann error during exception ("+description+") send attempt: ", t);
         }
     }
 }
