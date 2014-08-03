@@ -30,8 +30,7 @@ public class MonitoredSpout implements IRichSpout {
     @Override
     public void open(Map conf, final TopologyContext context, SpoutOutputCollector collector) {
         spoutService = context.getThisComponentId();
-
-        this.setEventSender();
+        injectEventSender(delegate);
         delegate.open(conf, context, new SpoutOutputCollector(collector) {
             @Override
             public List<Integer> emit(String streamId, List<Object> tuple, Object messageId) {

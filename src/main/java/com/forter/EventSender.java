@@ -10,6 +10,7 @@ public class EventSender implements IEventSender {
 
     public EventSender(String machineName) {
         this.connection = new RiemannConnection();
+        connection.connect();
         this.machineName = machineName;
     }
 
@@ -41,7 +42,7 @@ public class EventSender implements IEventSender {
         try {
             connection.getClient().event().description(description).service(service).tags("uncaught-exception").send();
         } catch (Throwable t) {
-            logger.warn("Riemann error during send : " + t.getStackTrace());
+            logger.warn("Riemann error during exception send : " + t.getStackTrace());
         }
     }
 }
