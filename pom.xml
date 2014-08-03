@@ -81,9 +81,26 @@
               </arguments>
         </configuration>
         </plugin>
-    </plugins>
-  </build>
-
+      </plugins>
+    </build>
+    <profiles>
+        <profile>
+            <id>production</id>
+            <activation>
+              <property>
+                <name>production</name>
+              </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.storm</groupId>
+                    <artifactId>storm-core</artifactId>
+                    <version>${storm.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
     <repositories>
         <repository>
             <id>clojars.org</id>
@@ -91,3 +108,5 @@
         </repository>
     </repositories>
 </project>
+
+
