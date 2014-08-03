@@ -41,11 +41,11 @@ public class Monitor {
     }
 
     private String getMachineName() {
-        /*try {
+        try {
             return new RiemannDiscovery().retrieveName();
         } catch (IOException e) {
             throw Throwables.propagate(e);
-        }*/return "local";
+        }
     }
 
 

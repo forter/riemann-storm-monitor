@@ -22,7 +22,7 @@ public class EventSender implements IEventSender {
                     .service(machineName + " " + service + " throughput.")
                     .tags("storm", "throughput").send();
         } catch (Throwable t) {
-            logger.warn("Riemann error during send : " + t.getStackTrace());
+            logger.warn("Riemann error during send : " + stackTraceToString(t));
         }
     }
 
@@ -34,7 +34,7 @@ public class EventSender implements IEventSender {
                     .tags("storm", "latency")
                     .state(er == null ? "success" : "failure").send();
         } catch(Throwable t) {
-            logger.warn("Riemann error during send : " + t.getStackTrace());
+            logger.warn("Riemann error during send : " + stackTraceToString(t));
         }
     }
 
@@ -42,7 +42,14 @@ public class EventSender implements IEventSender {
         try {
             connection.getClient().event().description(description).service(service).tags("uncaught-exception").send();
         } catch (Throwable t) {
-            logger.warn("Riemann error during exception send : " + t.getStackTrace());
+            logger.warn("Riemann error during exception send : " + stackTraceToString(t));
         }
+    }
+
+    private String stackTraceToString(Throwable t) {
+        StringBuilder sb = new StringBuilder();
+        for(StackTraceElement element : t.getStackTrace())
+            sb.append(element.toString() + '\n');
+        return sb.toString();
     }
 }
