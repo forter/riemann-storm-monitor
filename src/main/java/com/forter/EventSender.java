@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 public class EventSender implements IEventSender {
     private final RiemannConnection connection;
     private final String machineName;
-    private final Logger logger = LoggerFactory.getLogger("EventSender");
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     public EventSender(String machineName) {
         this.connection = new RiemannConnection();
@@ -22,7 +22,7 @@ public class EventSender implements IEventSender {
                     .service(machineName + " " + service + " throughput.")
                     .tags("storm", "throughput").send();
         } catch (Throwable t) {
-            logger.warn("Riemann error during send : " + stackTraceToString(t));
+            logger.warn("Riemann error during send : ", t);
         }
     }
 
@@ -34,7 +34,7 @@ public class EventSender implements IEventSender {
                     .tags("storm", "latency")
                     .state(er == null ? "success" : "failure").send();
         } catch(Throwable t) {
-            logger.warn("Riemann error during send : " + stackTraceToString(t));
+            logger.warn("Riemann error during send : ", t);
         }
     }
 
@@ -42,14 +42,7 @@ public class EventSender implements IEventSender {
         try {
             connection.getClient().event().description(description).service(service).tags("uncaught-exception").send();
         } catch (Throwable t) {
-            logger.warn("Riemann error during exception send : " + stackTraceToString(t));
+            logger.warn("Riemann error during exception send : ", t);
         }
-    }
-
-    private String stackTraceToString(Throwable t) {
-        StringBuilder sb = new StringBuilder();
-        for(StackTraceElement element : t.getStackTrace())
-            sb.append(element.toString() + '\n');
-        return sb.toString();
     }
 }
