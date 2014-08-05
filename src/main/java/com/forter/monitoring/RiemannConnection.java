@@ -1,4 +1,4 @@
-package com.forter;
+package com.forter.monitoring;
 
 import com.aphyr.riemann.client.RiemannClient;
 import com.google.common.base.Throwables;

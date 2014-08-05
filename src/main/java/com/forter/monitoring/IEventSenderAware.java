@@ -1,4 +1,4 @@
-package com.forter;
+package com.forter.monitoring;
 
 
 public interface IEventSenderAware {

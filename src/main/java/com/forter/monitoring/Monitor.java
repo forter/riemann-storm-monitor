@@ -1,4 +1,4 @@
-package com.forter;
+package com.forter.monitoring;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;

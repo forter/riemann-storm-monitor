@@ -1,7 +1,6 @@
-package com.forter;
+package com.forter.monitoring;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.IBasicBolt;
 import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import java.util.List;

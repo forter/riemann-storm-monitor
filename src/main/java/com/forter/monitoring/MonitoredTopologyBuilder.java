@@ -1,9 +1,9 @@
-package com.forter;
+package com.forter.monitoring;
 
 import backtype.storm.topology.*;
 
 /**
- * A {@link backtype.storm.topology.TopologyBuilder} that automatically wraps added bolts with {@link com.forter.MonitoredBolt} and Spouts with {@link com.forter.MonitoredSpout}
+ * A {@link backtype.storm.topology.TopologyBuilder} that automatically wraps added bolts with {@link MonitoredBolt} and Spouts with {@link MonitoredSpout}
  */
 public class MonitoredTopologyBuilder extends TopologyBuilder {
 

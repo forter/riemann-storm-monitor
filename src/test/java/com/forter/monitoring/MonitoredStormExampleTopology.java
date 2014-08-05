@@ -1,4 +1,4 @@
-package com.forter;
+package com.forter.monitoring;
 
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
@@ -10,6 +10,9 @@ import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
+import com.forter.monitoring.IEventSender;
+import com.forter.monitoring.IEventSenderAware;
+import com.forter.monitoring.MonitoredTopologyBuilder;
 import com.google.common.base.Throwables;
 
 import java.util.Map;
@@ -20,7 +23,7 @@ It defined two inner classes - a mock bolt and a mock spout. this classes are th
  */
 public class MonitoredStormExampleTopology {
 
-    public static class MockSpout extends BaseRichSpout implements IEventSenderAware{
+    public static class MockSpout extends BaseRichSpout implements IEventSenderAware {
         private SpoutOutputCollector collector;
         private String serv;
         private int lastId = 0;
