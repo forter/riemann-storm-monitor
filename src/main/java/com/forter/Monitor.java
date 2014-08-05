@@ -50,7 +50,11 @@ public class Monitor {
 
 
     public void startLatency(Object messageId) {
-        startTimestampPerId.put(messageId, System.nanoTime());
+        final long now = System.nanoTime();
+        startTimestampPerId.put(messageId, now);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Added to Hash-Map messageId %s at timestamp %s", messageId, now);
+        }
     }
 
     public void endLatency(Object id, String service, Throwable er) {
@@ -60,7 +64,8 @@ public class Monitor {
             startTimestampPerId.remove(id);
         }
         else {
-            eventSender.sendException("Storm Latency Hash-Map doesn't contain received key.", service);
+            logger.warn("Storm Latency Hash-Map doesn't contain received id %s. Swallowed exception %s", id, er);
+            eventSender.sendException("Storm Latency Hash-Map doesn't contain received id.", service);
         }
     }
 }
