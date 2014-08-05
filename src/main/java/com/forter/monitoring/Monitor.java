@@ -17,7 +17,7 @@ public class Monitor {
     private final EventSender eventSender;
     private final Map<Object, Long> startTimestampPerId;
     private final String machineName;
-    private final Logger logger = LoggerFactory.getLogger("MonitorLogger");
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
 
     private Monitor() {
