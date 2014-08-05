@@ -40,7 +40,10 @@ public class EventSender implements IEventSender {
 
     public void sendException(String description, String service) {
         try {
-            connection.getClient().event().description(description).service(service).tags("uncaught-exception").send();
+            connection.getClient().event()
+                    .description(description)
+                    .service(machineName + " " + service)
+                    .tags("uncaught-exception").send();
         } catch (Throwable t) {
             logger.warn("Riemann error during exception ("+description+") send attempt: ", t);
         }
