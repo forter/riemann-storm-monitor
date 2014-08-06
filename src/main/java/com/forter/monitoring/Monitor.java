@@ -3,8 +3,10 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.util.Map;
+
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 /*
@@ -22,7 +24,7 @@ public class Monitor {
 
     private Monitor() {
         machineName = getMachineName();
-        startTimestampPerId = Maps.newConcurrentMap();;
+        startTimestampPerId = Maps.newConcurrentMap();
         eventSender = new EventSender(machineName);
     }
 
@@ -49,11 +51,13 @@ public class Monitor {
     }
 
 
-    public void startLatency(Object messageId) {
+    public void startLatency(Object id) {
         final long now = System.nanoTime();
-        startTimestampPerId.put(messageId, now);
+
+        startTimestampPerId.put(id, now);
+
         if (logger.isDebugEnabled()) {
-            logger.debug("Added to Hash-Map messageId %s at timestamp %s", messageId, now);
+            logger.debug("Monitoring latency for key {}", id);
         }
     }
 
@@ -62,10 +66,19 @@ public class Monitor {
             long elapsed = NANOSECONDS.toMillis(System.nanoTime() - startTimestampPerId.get(id));
             eventSender.sendLatency(elapsed, service, er);
             startTimestampPerId.remove(id);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Monitored latency {} for key {}", elapsed, id);
+            }
         }
         else {
-            logger.warn("Storm Latency Hash-Map doesn't contain received id %s. Swallowed exception %s", id, er);
-            eventSender.sendException("Storm Latency Hash-Map doesn't contain received id.", service);
+            eventSender.sendException("Latency monitor doesn't recognize key.", service);
+            if (er == null) {
+                logger.warn("Latency monitor doesn't recognize key {}.", id);
+            }
+            else {
+                eventSender.sendException(er, service);
+                logger.warn("Latency monitor doesn't recognize key {}. Swallowed exception {}", id, er);
+            }
         }
     }
 }

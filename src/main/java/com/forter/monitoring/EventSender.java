@@ -1,4 +1,5 @@
 package com.forter.monitoring;
+import com.google.common.base.Throwables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +37,10 @@ public class EventSender implements IEventSender {
         } catch(Throwable t) {
             logger.warn("Riemann error during send : ", t);
         }
+    }
+
+    public void sendException(Throwable t, String service) {
+        sendException(Throwables.getStackTraceAsString(t), service);
     }
 
     public void sendException(String description, String service) {
