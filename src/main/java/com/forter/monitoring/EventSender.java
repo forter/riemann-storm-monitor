@@ -27,6 +27,7 @@ public class EventSender implements IEventSender {
         }
     }
 
+    @Override
     public void sendLatency(long latency, String service, Throwable er) {
         try {
             connection.getClient().event()
@@ -39,10 +40,12 @@ public class EventSender implements IEventSender {
         }
     }
 
+    @Override
     public void sendException(Throwable t, String service) {
         sendException(Throwables.getStackTraceAsString(t), service);
     }
 
+    @Override
     public void sendException(String description, String service) {
         try {
             connection.getClient().event()

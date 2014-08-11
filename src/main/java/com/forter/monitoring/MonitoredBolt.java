@@ -1,15 +1,13 @@
 package com.forter.monitoring;
-import backtype.storm.task.IBolt;
+
+import com.google.common.base.Throwables;
 import backtype.storm.task.IOutputCollector;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.*;
-import backtype.storm.tuple.MessageId;
 import backtype.storm.tuple.Tuple;
-import com.google.common.base.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -20,11 +18,10 @@ This class creates a monitored wrapper around other bolt classes to measure the 
 Currently ignores emit timings.
 */
 public class MonitoredBolt implements IRichBolt {
-
     private final Class<? extends IComponent> delegateClass;
     private final IRichBolt delegate;
     private String boltService;
-
+    private final Logger logger;
 
     private class MonitoredOutputCollector extends OutputCollector {
         MonitoredOutputCollector(IOutputCollector delegate) {
@@ -52,33 +49,54 @@ public class MonitoredBolt implements IRichBolt {
             Monitor.getMonitor().endLatency(input, boltService, new Throwable(delegateClass.getCanonicalName() + " failed to process tuple") );
             super.fail(input);
         }
+
+        @Override
+        public void reportError(Throwable error) {
+            Monitor.getMonitor().getEventSender().sendException(error, boltService);
+            super.reportError(error);
+        }
     }
 
     public MonitoredBolt(IRichBolt delegate) {
         this.delegateClass = delegate.getClass();
         this.delegate = delegate;
+        this.logger = LoggerFactory.getLogger(delegate.getClass());
     }
 
     public MonitoredBolt(IBasicBolt delegate) {
-        this.delegateClass = delegate.getClass();
-        this.delegate = new BasicBoltExecutor(delegate);
+        this(new BasicBoltExecutor(delegate));
     }
 
     @Override
     public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
-        boltService = context.getThisComponentId();
-        delegate.prepare(conf, context, new MonitoredOutputCollector(collector));
+        try {
+            boltService = context.getThisComponentId();
+            delegate.prepare(conf, context, new MonitoredOutputCollector(collector));
+        } catch(Throwable t) {
+            logger.info("Error during bolt prepare : ", t);
+            throw Throwables.propagate(t);
+        }
     }
 
     @Override
     public void execute(Tuple tuple) {
         Monitor.getMonitor().startLatency(tuple);
-        delegate.execute(tuple);
+        try {
+            delegate.execute(tuple);
+        } catch(Throwable t) {
+            logger.info("Error during bolt execute : ", t);
+            throw Throwables.propagate(t);
+        }
     }
 
     @Override
     public void cleanup() {
-        delegate.cleanup();
+        try {
+            delegate.cleanup();
+        } catch(Throwable t) {
+            logger.info("Error during bolt cleanup : ", t);
+            throw Throwables.propagate(t);
+        }
     }
 
     @Override
