@@ -52,7 +52,7 @@ public class MonitoredBolt implements IRichBolt {
 
         @Override
         public void reportError(Throwable error) {
-            Monitor.getMonitor().getEventSender().sendException(new Throwable(delegateClass.getCanonicalName() + " failed to process tuple"), boltService);
+            Monitor.getMonitor().getEventSender().sendException(error, boltService);
             super.reportError(error);
         }
     }
