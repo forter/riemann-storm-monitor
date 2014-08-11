@@ -52,6 +52,12 @@ public class MonitoredBolt implements IRichBolt {
             Monitor.getMonitor().endLatency(input, boltService, new Throwable(delegateClass.getCanonicalName() + " failed to process tuple") );
             super.fail(input);
         }
+
+        @Override
+        public void reportError(Throwable error) {
+            Monitor.getMonitor().getEventSender().sendException(new Throwable(delegateClass.getCanonicalName() + " failed to process tuple"), boltService);
+            super.reportError(error);
+        }
     }
 
     public MonitoredBolt(IRichBolt delegate) {

@@ -7,8 +7,8 @@ import com.google.common.collect.Iterables;
 import java.io.IOException;
 
 /*
-This class represents the connection to riemann.
-It handles the entire connection process.
+* This class represents the connection to riemann.
+* It handles the entire connection process.
 */
 public class RiemannConnection {
     private String riemannIP;
