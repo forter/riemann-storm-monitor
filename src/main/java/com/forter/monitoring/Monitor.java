@@ -50,7 +50,6 @@ public class Monitor {
         }
     }
 
-
     public void startLatency(Object id) {
         final long now = System.nanoTime();
 
