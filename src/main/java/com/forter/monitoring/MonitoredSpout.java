@@ -52,7 +52,7 @@ public class MonitoredSpout implements IRichSpout {
                 }
             });
         } catch(Throwable t) {
-            logger.info("Error during spout open : ", t);
+            logger.warn("Error during spout open : ", t);
             throw Throwables.propagate(t);
         }
     }

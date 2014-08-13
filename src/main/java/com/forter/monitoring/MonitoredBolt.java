@@ -1,5 +1,6 @@
 package com.forter.monitoring;
 
+import backtype.storm.tuple.MessageId;
 import com.google.common.base.Throwables;
 import backtype.storm.task.IOutputCollector;
 import backtype.storm.task.OutputCollector;
@@ -14,8 +15,8 @@ import java.util.Map;
 
 
 /*
-This class creates a monitored wrapper around other bolt classes to measure the time from execution till ack/fail.
-Currently ignores emit timings.
+* This class creates a monitored wrapper around other bolt classes to measure the time from execution till ack/fail.
+* Currently ignores emit timings.
 */
 public class MonitoredBolt implements IRichBolt {
     private final Class<? extends IComponent> delegateClass;
@@ -60,11 +61,13 @@ public class MonitoredBolt implements IRichBolt {
     public MonitoredBolt(IRichBolt delegate) {
         this.delegateClass = delegate.getClass();
         this.delegate = delegate;
-        this.logger = LoggerFactory.getLogger(delegate.getClass());
+        this.logger = LoggerFactory.getLogger(delegateClass);
     }
 
     public MonitoredBolt(IBasicBolt delegate) {
-        this(new BasicBoltExecutor(delegate));
+        this.delegateClass = delegate.getClass();
+        this.delegate = new BasicBoltExecutor(delegate);
+        this.logger = LoggerFactory.getLogger(delegateClass);
     }
 
     @Override
@@ -73,16 +76,18 @@ public class MonitoredBolt implements IRichBolt {
             boltService = context.getThisComponentId();
             delegate.prepare(conf, context, new MonitoredOutputCollector(collector));
         } catch(Throwable t) {
-            logger.info("Error during bolt prepare : ", t);
+            logger.warn("Error during bolt prepare : ", t);
             throw Throwables.propagate(t);
         }
     }
 
     @Override
     public void execute(Tuple tuple) {
+        logger.trace("Entered execute with tuple : ", tuple);
         Monitor.getMonitor().startLatency(tuple);
         try {
             delegate.execute(tuple);
+            logger.trace("Finished execution with tuple : ", tuple);
         } catch(Throwable t) {
             logger.info("Error during bolt execute : ", t);
             throw Throwables.propagate(t);
