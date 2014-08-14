@@ -17,13 +17,12 @@ The usage is -
 MonitoredSpout ms = new MonitoredSpout(new SpoutToMonitor());
 */
 public class MonitoredSpout implements IRichSpout {
-    private final Logger logger;
     private final IRichSpout delegate;
+    private transient Logger logger;
     private String spoutService;
 
     public MonitoredSpout(IRichSpout delegate) {
         this.delegate = delegate;
-        this.logger = LoggerFactory.getLogger(delegate.getClass());
     }
 
     private static void injectEventSender(IRichSpout delegate) {
@@ -34,6 +33,7 @@ public class MonitoredSpout implements IRichSpout {
 
     @Override
     public void open(Map conf, final TopologyContext context, SpoutOutputCollector collector) {
+        logger = LoggerFactory.getLogger(delegate.getClass());
         spoutService = context.getThisComponentId();
         injectEventSender(delegate);
         try {

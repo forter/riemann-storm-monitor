@@ -21,8 +21,8 @@ import java.util.Map;
 public class MonitoredBolt implements IRichBolt {
     private final Class<? extends IComponent> delegateClass;
     private final IRichBolt delegate;
+    private transient Logger logger;
     private String boltService;
-    private final Logger logger;
 
     private class MonitoredOutputCollector extends OutputCollector {
         MonitoredOutputCollector(IOutputCollector delegate) {
@@ -61,18 +61,17 @@ public class MonitoredBolt implements IRichBolt {
     public MonitoredBolt(IRichBolt delegate) {
         this.delegateClass = delegate.getClass();
         this.delegate = delegate;
-        this.logger = LoggerFactory.getLogger(delegateClass);
     }
 
     public MonitoredBolt(IBasicBolt delegate) {
         this.delegateClass = delegate.getClass();
         this.delegate = new BasicBoltExecutor(delegate);
-        this.logger = LoggerFactory.getLogger(delegateClass);
     }
 
     @Override
     public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
         try {
+            logger = LoggerFactory.getLogger(delegateClass);
             boltService = context.getThisComponentId();
             delegate.prepare(conf, context, new MonitoredOutputCollector(collector));
         } catch(Throwable t) {
