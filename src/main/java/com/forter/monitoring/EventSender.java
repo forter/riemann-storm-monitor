@@ -51,7 +51,7 @@ public class EventSender implements IEventSender {
             connection.getClient().event()
                     .description(description)
                     .service(machineName + " " + service)
-                    .tags("uncaught-exception").send();
+                    .tags("storm", "uncaught-exception").send();
         } catch (Throwable t) {
             logger.warn("Riemann error during exception ("+description+") send attempt: ", t);
         }
