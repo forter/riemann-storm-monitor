@@ -3,6 +3,8 @@ package com.forter.monitoring;
 import com.aphyr.riemann.client.RiemannClient;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
@@ -11,6 +13,8 @@ import java.io.IOException;
 * It handles the entire connection process.
 */
 public class RiemannConnection {
+    private static Logger logger = LoggerFactory.getLogger(RiemannConnection.class);
+
     private String riemannIP;
     private RiemannClient client;
 
@@ -28,8 +32,14 @@ public class RiemannConnection {
     }
 
     private String getRiemannIP(RiemannDiscovery discover) throws IOException {
-        String machinePrefix = (discover.retrieveName().startsWith("prod") ? "prod" : "develop");
-        return (Iterables.get(discover.describeInstancesByName(machinePrefix + "-riemann-instance"), 0)).getPrivateIpAddress();
+        try {
+            String machinePrefix = (discover.retrieveName().startsWith("prod") ? "prod" : "develop");
+            String ipAddress = (Iterables.get(discover.describeInstancesByName(machinePrefix + "-riemann-instance"), 0)).getPrivateIpAddress();
+            return ipAddress;
+        } catch (Throwable t) {
+            logger.error("Error getting getRiemannIP", t);
+            throw Throwables.propagate(t);
+        }
     }
 
     public RiemannClient getClient() {
