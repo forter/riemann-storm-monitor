@@ -26,7 +26,7 @@ The riemann-storm-monitor supplies various monitoring tools -
         @Override
         public void setEventSender(IEventSender es) {
             this.es = es;
-            es.
+            es.sendEvent("Description", "session-attributes-extractor", 0)
         }
         ...
   ```
