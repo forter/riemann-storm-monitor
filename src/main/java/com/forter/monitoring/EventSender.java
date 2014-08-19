@@ -56,4 +56,17 @@ public class EventSender implements IEventSender {
             logger.warn("Riemann error during exception ("+description+") send attempt: ", t);
         }
     }
+
+    @Override
+    public void sendEvent(String description, String service, double metric) {
+        try {
+            connection.getClient().event()
+                    .description(description)
+                    .service(machineName + " " + service)
+                    .metric(metric)
+                    .tags("storm").send();
+        } catch (Throwable t) {
+            logger.warn("Riemann error during general event ("+description+") send attempt: ", t);
+        }
+    }
 }
