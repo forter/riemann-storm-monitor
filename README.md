@@ -26,20 +26,10 @@ The riemann-storm-monitor supplies various monitoring tools -
         @Override
         public void setEventSender(IEventSender es) {
             this.es = es;
-            es.sendEvent("Description", "session-attributes-extractor", 0)
         }
         ...
   ```
 
-*IEvenSender events (from [IEventSender.java]("https://github.com/forter/riemann-storm-monitor/blob/prod/src/main/java/com/forter/monitoring/IEventSender.java")
-```java
-public interface IEventSender {
-    void sendThroughputEvent(String service, String messageId);
-    void sendException(Throwable t, String service);
-    void sendException(String description, String service);
-    void sendLatency(long latency, String service, Throwable er);
-    void sendEvent(String description, String service, double metric);
-}
-```
+* **IEvenSender events (from [IEventSender.java](src/main/java/com/forter/monitoring/IEventSender.java IEventSender.java))
 
 * **Bolt / Spout latency monitoring** - the usage of this feature is automatic.
