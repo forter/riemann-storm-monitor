@@ -1,14 +1,14 @@
 package com.forter.monitoring;
 
-import backtype.storm.tuple.MessageId;
-import com.google.common.base.Throwables;
 import backtype.storm.task.IOutputCollector;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.*;
 import backtype.storm.tuple.Tuple;
+import com.google.common.base.Throwables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -18,8 +18,8 @@ import java.util.Map;
 * This class creates a monitored wrapper around other bolt classes to measure the time from execution till ack/fail.
 * Currently ignores emit timings.
 */
-public class MonitoredBolt implements IRichBolt {
-    private final Class<? extends IComponent> delegateClass;
+public class MonitoredBolt implements IRichBolt , InnerBoltAware{
+    private final Class<?> delegateClass;
     private final IRichBolt delegate;
     private transient Logger logger;
     private String boltService;
@@ -59,13 +59,21 @@ public class MonitoredBolt implements IRichBolt {
     }
 
     public MonitoredBolt(IRichBolt delegate) {
-        this.delegateClass = delegate.getClass();
+        this.delegateClass = unwrapClass(delegate);
         this.delegate = delegate;
     }
 
     public MonitoredBolt(IBasicBolt delegate) {
-        this.delegateClass = delegate.getClass();
+        this.delegateClass = unwrapClass(delegate);
         this.delegate = new BasicBoltExecutor(delegate);
+    }
+
+    private <T extends IComponent> Class<?> unwrapClass(T delegate) {
+        if (delegate instanceof InnerBoltAware) {
+            return ((InnerBoltAware)delegate).getDelegateClass();
+        } else {
+            return delegate.getClass();
+        }
     }
 
     @Override
@@ -115,6 +123,11 @@ public class MonitoredBolt implements IRichBolt {
     @Override
     public Map<String, Object> getComponentConfiguration() {
         return delegate.getComponentConfiguration();
+    }
+
+    @Override
+    public Class<?> getDelegateClass() {
+        return delegateClass;
     }
 }
 
