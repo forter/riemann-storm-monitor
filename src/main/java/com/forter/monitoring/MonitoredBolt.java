@@ -41,13 +41,13 @@ public class MonitoredBolt implements IRichBolt {
 
         @Override
         public void ack(Tuple input) {
-            Monitor.getMonitor().endLatency(input, boltService, null /*error = null*/ );
+            Monitor.getMonitor().endLatency(pair(input), boltService, null /*error = null*/ );
             super.ack(input);
         }
 
         @Override
         public void fail(Tuple input) {
-            Monitor.getMonitor().endLatency(input, boltService, new Throwable(delegateClass.getCanonicalName() + " failed to process tuple") );
+            Monitor.getMonitor().endLatency(pair(input), boltService, new Throwable(delegateClass.getCanonicalName() + " failed to process tuple") );
             super.fail(input);
         }
 
@@ -83,7 +83,7 @@ public class MonitoredBolt implements IRichBolt {
     @Override
     public void execute(Tuple tuple) {
         logger.trace("Entered execute with tuple : ", tuple);
-        Monitor.getMonitor().startLatency(tuple);
+        Monitor.getMonitor().startLatency(pair(tuple));
         try {
             delegate.execute(tuple);
             logger.trace("Finished execution with tuple : ", tuple);
@@ -91,6 +91,10 @@ public class MonitoredBolt implements IRichBolt {
             logger.info("Error during bolt execute : ", t);
             throw Throwables.propagate(t);
         }
+    }
+
+    private PairKey pair(Tuple tuple) {
+        return new PairKey(this, tuple);
     }
 
     @Override
