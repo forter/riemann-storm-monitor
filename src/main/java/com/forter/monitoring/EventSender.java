@@ -1,5 +1,6 @@
 package com.forter.monitoring;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ObjectArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,6 +55,20 @@ public class EventSender implements IEventSender {
                     .tags("storm", "uncaught-exception").send();
         } catch (Throwable t) {
             logger.warn("Riemann error during exception ("+description+") send attempt: ", t);
+        }
+    }
+
+    @Override
+    public void sendEvent(String description, String service, double metric, String ... tags) {
+        try {
+            String tagsArr[] = ObjectArrays.concat(tags, new String[]{"storm"}, String.class);
+            connection.getClient().event()
+                    .description(description)
+                    .service(machineName + " " + service)
+                    .metric(metric)
+                    .tags(tagsArr).send();
+        } catch (Throwable t) {
+            logger.warn("Riemann error during general event ("+description+") send attempt: ", t);
         }
     }
 }

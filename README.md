@@ -30,5 +30,6 @@ The riemann-storm-monitor supplies various monitoring tools -
         ...
   ```
 
+* **IEvenSender events (from [IEventSender.java](src/main/java/com/forter/monitoring/IEventSender.java))
 
 * **Bolt / Spout latency monitoring** - the usage of this feature is automatic.
