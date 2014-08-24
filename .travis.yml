@@ -1,7 +1,16 @@
 language: java
 jdk: oraclejdk7
 script:
-    - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pproduction
-    - mvn test -B
+- mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pproduction
+- mvn test -B
 
-
+deploy:
+  provider: s3
+  access_key_id:
+    secure: "Gw2yqfjnn5KEmwCNZmZj0kQcn6oc++5Ifr4iABSv1c8zO4eROdWsFR8C0BTAeXsf7aLXtt1lH1RnFoI+R9K7vci6awVTd16nnP/yJJlSUpSTx4HpX4zTU0f2FzINHvGJTr7syGVw5p8qTTL8PYUs9YsYr+RD8IpQvkQEp6+HgFs="
+  secret_access_key:
+    secure: "Hyj8G3VCJj9jO3NSSuArErYD+yDTc/dmvxAA1fRp83Yskbp68wMiwtgOeE0qn4zn5rfD27IiYf+rkejYBjNca9gNop29sDfieBkUfgy5wloDWk75iC4H3BqKRgue+cBvJmks2IV50FXJnWllNanqHX5Zxsj98jm+ngHwSp7lGpI="
+  bucket: public-maven-repository
+  local-dir: /home/travis/.m2/repository/com/forter/
+  upload-dir: /com/forter/
+  skip_cleanup: true
