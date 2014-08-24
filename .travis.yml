@@ -12,7 +12,7 @@ deploy:
     secure: "Hyj8G3VCJj9jO3NSSuArErYD+yDTc/dmvxAA1fRp83Yskbp68wMiwtgOeE0qn4zn5rfD27IiYf+rkejYBjNca9gNop29sDfieBkUfgy5wloDWk75iC4H3BqKRgue+cBvJmks2IV50FXJnWllNanqHX5Zxsj98jm+ngHwSp7lGpI="
   bucket: public-maven-repository
   local-dir: /home/travis/.m2/repository/com/forter/
-  upload-dir: /com/forter/
+  upload-dir: com/forter
   skip_cleanup: true
   on:
     branch: develop
