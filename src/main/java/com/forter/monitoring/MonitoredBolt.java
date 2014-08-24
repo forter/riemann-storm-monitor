@@ -68,11 +68,18 @@ public class MonitoredBolt implements IRichBolt {
         this.delegate = new BasicBoltExecutor(delegate);
     }
 
+    private static void injectEventSender(IRichBolt delegate) {
+        if(delegate instanceof IEventSenderAware) {
+            ((IEventSenderAware) delegate).setEventSender(Monitor.getMonitor().getEventSender());
+        }
+    }
+
     @Override
     public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
         try {
             logger = LoggerFactory.getLogger(delegateClass);
             boltService = context.getThisComponentId();
+            injectEventSender(delegate);
             delegate.prepare(conf, context, new MonitoredOutputCollector(collector));
         } catch(Throwable t) {
             logger.warn("Error during bolt prepare : ", t);
