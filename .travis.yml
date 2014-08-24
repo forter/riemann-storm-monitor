@@ -7,12 +7,13 @@ script:
 deploy:
   provider: s3
   access_key_id:
-    secure: "Gw2yqfjnn5KEmwCNZmZj0kQcn6oc++5Ifr4iABSv1c8zO4eROdWsFR8C0BTAeXsf7aLXtt1lH1RnFoI+R9K7vci6awVTd16nnP/yJJlSUpSTx4HpX4zTU0f2FzINHvGJTr7syGVw5p8qTTL8PYUs9YsYr+RD8IpQvkQEp6+HgFs="
+    secure: "r4rfQSCKUhV8SVry9qK6en7aGDyag2whOR7GKFJ75SIfTRZZeUkz11qV27zEGyWke6isZOMsHS7L0A2Szw20+NPolYCl5IcI37uwrwrO2waagcUsgWqkJmZ21EfgF+0myIPmBrWnxae6BOcTuVmTcZycZOMS8lMgmtZxdpEjRu4="
   secret_access_key:
-    secure: "Hyj8G3VCJj9jO3NSSuArErYD+yDTc/dmvxAA1fRp83Yskbp68wMiwtgOeE0qn4zn5rfD27IiYf+rkejYBjNca9gNop29sDfieBkUfgy5wloDWk75iC4H3BqKRgue+cBvJmks2IV50FXJnWllNanqHX5Zxsj98jm+ngHwSp7lGpI="
+    secure: "yqFueGXnmdZMJRO/0/2lo2H2ZTBBwFtT4XJUzJvkgqxHUOvaE1I/hMw6MbyDgsMRPb5tqbmPeNyleVeg18N/ph9Mof/ak+KX35zXUNjh1wwlSK0AVfVtnbjPiJeKFXvAlX67W7oxvtR8fw6FieQB+A0/zm4g7kPKxOupPcAsYYI="
   bucket: oss.forter.com
   local-dir: /home/travis/.m2/repository/com/forter/riemann-storm-monitor/
   upload-dir: repository/com/forter/riemann-storm-monitor
   skip_cleanup: true
   on:
     branch: prod
+    tags: true
