@@ -1,6 +1,7 @@
 package com.forter.monitoring;
 
 import com.aphyr.riemann.client.RiemannClient;
+import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 
@@ -28,7 +29,8 @@ public class RiemannConnection {
     }
 
     private String getRiemannIP(RiemannDiscovery discover) throws IOException {
-        String machinePrefix = (discover.retrieveName().startsWith("prod") ? "prod" : "develop");
+        Optional<String> machineName = discover.retrieveName();
+        String machinePrefix = (machineName.isPresent() && machineName.get().startsWith("prod") ? "prod" : "develop");
         return (Iterables.get(discover.describeInstancesByName(machinePrefix + "-riemann-instance"), 0)).getPrivateIpAddress();
     }
 
