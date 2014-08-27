@@ -3,6 +3,7 @@ package com.forter.monitoring;
 import backtype.storm.topology.*;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
+import com.google.common.reflect.TypeToken;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Type;
@@ -50,15 +51,18 @@ public class MonitoredTopologyBuilder extends TopologyBuilder {
             monitoredBolt = new MonitoredBolt((IRichBolt) bolt);
         }
         else {
-            for (Type boltInterface : bolt.getClass().getGenericInterfaces()) {
-                Constructor<? extends IRichBolt> cotr = richBoltConstructorsByInterface.get(boltInterface);
-                if (cotr != null) {
-                    monitoredBolt = new MonitoredBolt(bolt, cotr);
+
+            for (TypeToken<?> boltSuperType : TypeToken.of(bolt.getClass()).getTypes()) {
+                if (boltSuperType.getRawType().isInterface()) {
+                    Constructor<? extends IRichBolt> cotr = richBoltConstructorsByInterface.get(boltSuperType.getRawType());
+                    if (cotr != null) {
+                        monitoredBolt = new MonitoredBolt(bolt, cotr);
+                    }
+                    break;
                 }
-                break;
             }
         }
-        Preconditions.checkArgument(monitoredBolt == null,
+        Preconditions.checkArgument(monitoredBolt != null,
                 bolt.getClass().getName() + " is not supported. " +
                 "Register an interface implemented by " + bolt.getClass().getName() + " with " + this.getClass().getName() + "#registerRichBolt()");
 
