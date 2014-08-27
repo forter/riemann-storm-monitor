@@ -1,12 +1,15 @@
 package com.forter.monitoring;
+import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map;
 
+import static com.google.common.base.Optional.of;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 /*
@@ -16,16 +19,45 @@ The monitored bolts and spouts will use the functions in this class.
 public class Monitor {
     private static volatile transient Monitor singleton;
 
-    private final EventSender eventSender;
+    private final IEventSender eventSender;
     private final Map<Object, Long> startTimestampPerId;
-    private final String machineName;
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
 
     private Monitor() {
-        machineName = getMachineName();
+        Optional<String> machineName = getMachineName();
         startTimestampPerId = Maps.newConcurrentMap();
-        eventSender = new EventSender(machineName);
+        if (machineName.isPresent()) {
+            eventSender = new EventSender(machineName.get());
+        } else {
+            // Empty implementation for local run
+            eventSender = new IEventSender() {
+                @Override
+                public void sendThroughputEvent(String service, String messageId) {
+                    logger.info("riemann event sendThroughputEvent({},{})",service,messageId);
+                }
+
+                @Override
+                public void sendException(Throwable t, String service) {
+                    logger.info("riemann event sendException({},{})",t.toString(),service);
+                }
+
+                @Override
+                public void sendException(String description, String service) {
+                    logger.info("riemann event sendException({},{})",description,service);
+                }
+
+                @Override
+                public void sendLatency(long latency, String service, Throwable t) {
+                    logger.info("riemann event sendLatency({},{},{})",latency,service,t.toString());
+                }
+
+                @Override
+                public void sendEvent(String description, String service, double metric, String... tags) {
+                    logger.info("riemann event sendEvent({},{},{},{})",description,service,metric, Arrays.toString(tags));
+                }
+            };
+        }
     }
 
     public static Monitor getMonitor() {
@@ -42,7 +74,7 @@ public class Monitor {
         return eventSender;
     }
 
-    private String getMachineName() {
+    private Optional<String> getMachineName() {
         try {
             return new RiemannDiscovery().retrieveName();
         } catch (IOException e) {
