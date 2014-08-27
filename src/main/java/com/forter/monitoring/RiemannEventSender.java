@@ -11,7 +11,7 @@ public class RiemannEventSender implements EventSender {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     public RiemannEventSender(String machineName) {
-        this.connection = new RiemannConnection();
+        this.connection = new RiemannConnection(machineName);
         connection.connect();
         this.machineName = machineName;
     }
