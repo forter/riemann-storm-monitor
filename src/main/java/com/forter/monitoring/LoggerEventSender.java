@@ -19,7 +19,7 @@ public class LoggerEventSender implements EventSender {
 
     @Override
     public void sendException(Throwable t, String service) {
-        logger.info("event sendException({},{})", t.toString(), service);
+        logger.info("event sendException({},{})", String.valueOf(t), service);
     }
 
     @Override
@@ -29,7 +29,7 @@ public class LoggerEventSender implements EventSender {
 
     @Override
     public void sendLatency(long latency, String service, Throwable t) {
-        logger.info("event sendLatency({},{},{})", latency, service, t.toString());
+        logger.info("event sendLatency({},{},{})", latency, service, String.valueOf(t));
     }
 
     @Override
