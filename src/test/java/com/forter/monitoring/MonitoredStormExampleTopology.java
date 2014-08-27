@@ -10,9 +10,6 @@ import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
-import com.forter.monitoring.IEventSender;
-import com.forter.monitoring.IEventSenderAware;
-import com.forter.monitoring.MonitoredTopologyBuilder;
 import com.google.common.base.Throwables;
 
 import java.util.Map;
@@ -27,10 +24,10 @@ public class MonitoredStormExampleTopology {
         private SpoutOutputCollector collector;
         private String serv;
         private int lastId = 0;
-        private IEventSender es;
+        private EventSender es;
 
         @Override
-        public void setEventSender(IEventSender es) {
+        public void setEventSender(EventSender es) {
             this.es = es;
         }
 
