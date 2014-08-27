@@ -1,4 +1,5 @@
 package com.forter.monitoring;
+import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
@@ -18,14 +19,18 @@ public class Monitor {
 
     private final EventSender eventSender;
     private final Map<Object, Long> startTimestampPerId;
-    private final String machineName;
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
 
     private Monitor() {
-        machineName = getMachineName();
+        Optional<String> machineName = getMachineName();
         startTimestampPerId = Maps.newConcurrentMap();
-        eventSender = new EventSender(machineName);
+        if (machineName.isPresent()) {
+            eventSender = new RiemannEventSender(machineName.get());
+        } else {
+            //fallback for local mode
+            eventSender = new LoggerEventSender();
+        }
     }
 
     public static Monitor getMonitor() {
@@ -38,11 +43,11 @@ public class Monitor {
         return singleton;
     }
 
-    public IEventSender getEventSender() {
+    public EventSender getEventSender() {
         return eventSender;
     }
 
-    private String getMachineName() {
+    private Optional<String> getMachineName() {
         try {
             return new RiemannDiscovery().retrieveName();
         } catch (IOException e) {
