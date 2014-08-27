@@ -2,6 +2,7 @@ package com.forter.monitoring;
 
 import backtype.storm.topology.*;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Type;
@@ -12,9 +13,10 @@ import java.util.Map;
  */
 public class MonitoredTopologyBuilder extends TopologyBuilder {
 
-    Map<Class<?>, Constructor<? extends IRichBolt>> richBoltConstructorsByInterface;
+    final Map<Class<?>, Constructor<? extends IRichBolt>> richBoltConstructorsByInterface;
 
     public MonitoredTopologyBuilder() {
+        richBoltConstructorsByInterface = Maps.newHashMap();
         registerRichBolt(IBasicBolt.class, BasicBoltExecutor.class);
     }
 
