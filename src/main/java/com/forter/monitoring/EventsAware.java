@@ -1,6 +1,6 @@
 package com.forter.monitoring;
 
 
-public interface IEventSenderAware {
+public interface EventsAware {
     void setEventSender(EventSender es);
 }

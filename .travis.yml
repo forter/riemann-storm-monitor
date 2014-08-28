@@ -15,5 +15,5 @@ deploy:
   upload-dir: repository/com/forter/riemann-storm-monitor
   skip_cleanup: true
   on:
-    branch: prod
+    all_branches: true
     tags: true

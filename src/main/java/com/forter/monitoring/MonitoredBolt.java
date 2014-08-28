@@ -76,8 +76,8 @@ public class MonitoredBolt implements IRichBolt {
     }
 
     private static void injectEventSender(IRichBolt delegate) {
-        if(delegate instanceof IEventSenderAware) {
-            ((IEventSenderAware) delegate).setEventSender(Monitor.getMonitor().getEventSender());
+        if(delegate instanceof EventsAware) {
+            ((EventsAware) delegate).setEventSender(Monitor.getMonitor().getEventSender());
         }
     }
 
