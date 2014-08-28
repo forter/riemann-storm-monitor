@@ -20,7 +20,7 @@ It defined two inner classes - a mock bolt and a mock spout. this classes are th
  */
 public class MonitoredStormExampleTopology {
 
-    public static class MockSpout extends BaseRichSpout implements IEventSenderAware {
+    public static class MockSpout extends BaseRichSpout implements EventsAware {
         private SpoutOutputCollector collector;
         private String serv;
         private int lastId = 0;

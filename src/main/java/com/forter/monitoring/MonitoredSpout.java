@@ -26,8 +26,8 @@ public class MonitoredSpout implements IRichSpout {
     }
 
     private static void injectEventSender(IRichSpout delegate) {
-        if(delegate instanceof IEventSenderAware) {
-            ((IEventSenderAware) delegate).setEventSender(Monitor.getMonitor().getEventSender());
+        if(delegate instanceof EventsAware) {
+            ((EventsAware) delegate).setEventSender(Monitor.getMonitor().getEventSender());
         }
     }
 
