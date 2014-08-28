@@ -85,10 +85,10 @@ public class RiemannDiscovery {
     }
 
     public Iterable<Instance> describeInstancesByName(final String name) {
-
+        final Filter runningFilter = new Filter().withName("instance-state-name").withValues("running");
+        Filter nameFilter = new Filter().withName("tag:Name").withValues(name);
         return describeInstances(
-                new DescribeInstancesRequest().withFilters(
-                        new Filter().withName("tag:Name").withValues(name)));
+                new DescribeInstancesRequest().withFilters(nameFilter,runningFilter));
     }
 
     private Iterable<Instance> describeInstances(DescribeInstancesRequest request) {
