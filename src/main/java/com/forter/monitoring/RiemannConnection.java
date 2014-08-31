@@ -1,10 +1,10 @@
 package com.forter.monitoring;
 
 import com.aphyr.riemann.client.RiemannClient;
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
@@ -16,20 +16,27 @@ public class RiemannConnection {
     private final String machineName;
     private String riemannIP;
     private RiemannClient client;
-
+    private Logger logger = LoggerFactory.getLogger(this.getClass());
+    private final int riemannPort = 5555;
     RiemannConnection(String machineName) {
         this.machineName = machineName;
     }
 
     public void connect() {
-        if (client == null || !client.isConnected()) {
+        if (client == null) {
             try {
                 riemannIP = getRiemannIP(new RiemannDiscovery());
-                client = RiemannClient.tcp(riemannIP, 5555);
-                client.connect();
+                client = RiemannClient.tcp(riemannIP, riemannPort);
             }
             catch (IOException e) {
                 throw Throwables.propagate(e);
+            }
+            try {
+                // initializes client, connection is actually async
+                client.connect();
+            }
+            catch (IOException e) {
+                logger.info("Failed connecting to riemann " + riemannIP + ":" + riemannPort + " riemann-java-client will try reconnecting every 5 seconds.");
             }
         }
     }
