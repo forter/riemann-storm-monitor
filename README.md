@@ -21,7 +21,7 @@ The riemann-storm-monitor supplies various monitoring tools -
   The implementation is as such - 
   ```java
   public class MockSpout implements EventsAware{
-        private IEventSender es;
+        private EventSender es;
 
         @Override
         public void setEventSender(EventSender es) {
