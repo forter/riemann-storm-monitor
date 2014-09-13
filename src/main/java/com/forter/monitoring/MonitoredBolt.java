@@ -1,27 +1,24 @@
 package com.forter.monitoring;
 
-import com.google.common.base.Throwables;
 import backtype.storm.task.IOutputCollector;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.*;
+import backtype.storm.topology.IRichBolt;
+import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
+import com.google.common.base.Throwables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-
 
 /*
 * This class creates a monitored wrapper around other bolt classes to measure the time from execution till ack/fail.
 * Currently ignores emit timings.
 */
 public class MonitoredBolt implements IRichBolt {
-    private final Class<?> delegateClass;
     private final IRichBolt delegate;
     private transient Logger logger;
     private String boltService;
@@ -49,7 +46,7 @@ public class MonitoredBolt implements IRichBolt {
 
         @Override
         public void fail(Tuple input) {
-            Monitor.getMonitor().endLatency(pair(input), boltService, new Throwable(delegateClass.getCanonicalName() + " failed to process tuple") );
+            Monitor.getMonitor().endLatency(pair(input), boltService, new Throwable(boltService + " failed to process tuple") );
             super.fail(input);
         }
 
@@ -61,18 +58,7 @@ public class MonitoredBolt implements IRichBolt {
     }
 
     public MonitoredBolt(IRichBolt delegate) {
-        this.delegateClass = delegate.getClass();
         this.delegate = delegate;
-    }
-
-    public MonitoredBolt(Object delegate, Constructor<? extends IRichBolt> richBoltConstructor) {
-        this.delegateClass = delegate.getClass();
-        try {
-            this.delegate = richBoltConstructor.newInstance(delegate);
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-            throw Throwables.propagate(e);
-        }
-
     }
 
     private static void injectEventSender(IRichBolt delegate) {
@@ -84,8 +70,8 @@ public class MonitoredBolt implements IRichBolt {
     @Override
     public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
         try {
-            logger = LoggerFactory.getLogger(delegateClass);
             boltService = context.getThisComponentId();
+            logger = LoggerFactory.getLogger(boltService);
             injectEventSender(delegate);
             delegate.prepare(conf, context, new MonitoredOutputCollector(collector));
         } catch(Throwable t) {
