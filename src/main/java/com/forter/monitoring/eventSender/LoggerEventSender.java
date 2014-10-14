@@ -1,5 +1,6 @@
-package com.forter.monitoring;
+package com.forter.monitoring.eventSender;
 
+import com.forter.monitoring.eventSender.EventSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

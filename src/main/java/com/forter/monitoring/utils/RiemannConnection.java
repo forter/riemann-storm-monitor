@@ -1,6 +1,7 @@
-package com.forter.monitoring;
+package com.forter.monitoring.utils;
 
 import com.aphyr.riemann.client.RiemannClient;
+import com.forter.monitoring.utils.RiemannDiscovery;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import org.slf4j.Logger;

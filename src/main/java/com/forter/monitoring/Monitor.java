@@ -1,4 +1,8 @@
 package com.forter.monitoring;
+import com.forter.monitoring.eventSender.EventSender;
+import com.forter.monitoring.eventSender.LoggerEventSender;
+import com.forter.monitoring.utils.RiemannDiscovery;
+import com.forter.monitoring.eventSender.RiemannEventSender;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;

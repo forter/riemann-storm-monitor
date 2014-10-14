@@ -10,6 +10,8 @@ import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
+import com.forter.monitoring.eventSender.EventSender;
+import com.forter.monitoring.eventSender.EventsAware;
 import com.google.common.base.Throwables;
 
 import java.util.Map;
