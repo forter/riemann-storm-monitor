@@ -1,5 +1,4 @@
 package com.forter.monitoring.eventSender;
-import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.utils.RiemannConnection;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ObjectArrays;
