@@ -16,10 +16,14 @@ public class RiemannEventSender implements EventSender {
         this.machineName = machineName;
     }
 
+    public com.aphyr.riemann.client.EventDSL createEvent() {
+        return connection.getClient().event();
+    }
+
     @Override
     public void sendThroughputEvent(String service, String messageId) {
         try {
-            connection.getClient().event()
+            createEvent()
                     .metric(1)
                     .service(machineName + " " + service + " throughput.")
                     .tags("storm", "throughput").send();
@@ -31,7 +35,7 @@ public class RiemannEventSender implements EventSender {
     @Override
     public void sendLatency(long latency, String service, Throwable er) {
         try {
-            connection.getClient().event()
+            createEvent()
                     .metric(latency)
                     .service(machineName + " " + service + " latency." )
                     .tags("storm", "latency")
@@ -49,7 +53,7 @@ public class RiemannEventSender implements EventSender {
     @Override
     public void sendException(String description, String service) {
         try {
-            connection.getClient().event()
+            createEvent()
                     .description(description)
                     .service(machineName + " " + service)
                     .tags("storm", "uncaught-exception").send();
@@ -62,7 +66,7 @@ public class RiemannEventSender implements EventSender {
     public void sendEvent(String description, String service, double metric, String ... tags) {
         try {
             String tagsArr[] = ObjectArrays.concat(tags, new String[]{"storm"}, String.class);
-            connection.getClient().event()
+            createEvent()
                     .description(description)
                     .service(machineName + " " + service)
                     .metric(metric)
