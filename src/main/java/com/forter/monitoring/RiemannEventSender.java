@@ -1,4 +1,5 @@
 package com.forter.monitoring;
+import com.aphyr.riemann.client.RiemannClient;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ObjectArrays;
 import org.slf4j.Logger;
@@ -74,5 +75,13 @@ public class RiemannEventSender implements EventSender {
         } catch (Throwable t) {
             logger.warn("Riemann error during general event ("+description+") send attempt: ", t);
         }
+    }
+
+    public RiemannClient getRiemann() {
+        return connection.getClient();
+    }
+
+    public String getMachineName() {
+        return machineName;
     }
 }
