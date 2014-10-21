@@ -80,8 +80,4 @@ public class RiemannEventSender implements EventSender {
     public RiemannClient getRiemannClient() {
         return connection.getClient();
     }
-
-    public String getMachineName() {
-        return machineName;
-    }
 }
