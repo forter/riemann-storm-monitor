@@ -77,7 +77,7 @@ public class RiemannEventSender implements EventSender {
         }
     }
 
-    public RiemannClient getRiemann() {
+    public RiemannClient getRiemannClient() {
         return connection.getClient();
     }
 
