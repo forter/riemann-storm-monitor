@@ -26,7 +26,8 @@ public class RiemannConnection {
     public void connect() {
         if (client == null) {
             try {
-                riemannIP = getRiemannIP(new RiemannDiscovery());
+                riemannIP = "127.0.0.1";
+                //riemannIP = getRiemannIP(new RiemannDiscovery());
                 client = RiemannClient.tcp(riemannIP, riemannPort);
             }
             catch (IOException e) {

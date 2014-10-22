@@ -10,7 +10,6 @@ import com.forter.monitoring.eventSender.EventsAware;
 import com.forter.monitoring.events.ExceptionEvent;
 import com.forter.monitoring.utils.PairKey;
 import com.google.common.base.Throwables;
-import javafx.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,9 +25,9 @@ public class MonitoredBolt implements IRichBolt {
     private final IRichBolt delegate;
     private transient Logger logger;
     private String boltService;
+    protected String stormIdName;
 
     private class MonitoredOutputCollector extends OutputCollector {
-        private String idName;
 
         MonitoredOutputCollector(IOutputCollector delegate) {
             super(delegate);
@@ -46,9 +45,9 @@ public class MonitoredBolt implements IRichBolt {
 
         @Override
         public void ack(Tuple input) {
-            if(idName != null && input.contains(idName)) {
-                String stormId = input.getStringByField(idName);
-                Monitor.getMonitor().endLatency(pair(input), boltService, new Pair<>(idName, stormId), null /*error = null*/);
+            if(stormIdName != null && input.contains(stormIdName)) {
+                String stormId = input.getStringByField(stormIdName);
+                Monitor.getMonitor().endLatency(pair(input), boltService, stormIdName, stormId, null /*error = null*/);
             } else {
                 Monitor.getMonitor().endLatency(pair(input), boltService, null /*error = null*/);
             }
@@ -57,22 +56,14 @@ public class MonitoredBolt implements IRichBolt {
 
         @Override
         public void fail(Tuple input) {
-            if(idName != null && input.contains(idName)) {
-                String stormId = input.getStringByField(idName);
-                Monitor.getMonitor().endLatency(pair(input), boltService, new Pair<>(idName, stormId), new Throwable(boltService + " failed to process tuple") );
+            if(stormIdName != null && input.contains(stormIdName)) {
+                String stormId = input.getStringByField(stormIdName);
+                Monitor.getMonitor().endLatency(pair(input), boltService, stormIdName, stormId, new Throwable(boltService + " failed to process tuple") );
             } else {
                 Monitor.getMonitor().endLatency(pair(input), boltService, new Throwable(boltService + " failed to process tuple"));
             }
 
             super.fail(input);
-        }
-
-        /* A function to set the id name in the tuple.
-         * The id name is a unique id to send via custom attributes to riemann,
-         * which can later be used to filter events in various ways (riemann, kibana, etc)
-         */
-        public void setIdName(String idName) {
-            this.idName = idName;
         }
 
         @Override
@@ -141,6 +132,15 @@ public class MonitoredBolt implements IRichBolt {
     public Map<String, Object> getComponentConfiguration() {
         return delegate.getComponentConfiguration();
     }
+
+    /* A function to set the id name in the tuple.
+         * The id name is a unique id to send via custom attributes to riemann,
+         * which can later be used to filter events in various ways (riemann, kibana, etc)
+         */
+    public void setIdName(String idName) {
+        stormIdName = idName;
+    }
+
 }
 
 

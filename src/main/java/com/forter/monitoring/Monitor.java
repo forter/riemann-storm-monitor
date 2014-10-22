@@ -8,7 +8,6 @@ import com.forter.monitoring.eventSender.RiemannEventSender;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
-import javafx.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,11 +54,12 @@ public class Monitor {
     }
 
     private Optional<String> getMachineName() {
-        try {
+       /* try {
             return new RiemannDiscovery().retrieveName();
         } catch (IOException e) {
             throw Throwables.propagate(e);
-        }
+        }*/
+        return Optional.of("localhost");
     }
 
     public void startLatency(Object id) {
@@ -73,22 +73,28 @@ public class Monitor {
     }
 
     public void endLatency(Object latencyId, String service, Throwable er) {
-        endLatency(latencyId, service, null, er);
+        endLatency(latencyId, service, null, null, er);
     }
 
-    public void endLatency(Object latencyId, String service, Pair<String, String> stormId, Throwable er) {
+    public void endLatency(Object latencyId, String service, String stormIdName, String stormIdValue, Throwable er) {
         if(startTimestampPerId.containsKey(latencyId)) {
             long elapsed = NANOSECONDS.toMillis(System.nanoTime() - startTimestampPerId.get(latencyId));
-            eventSender.send(new LatencyEvent(elapsed)
-                    .service(service)
-                    .error(er)
-                    .attribute(stormId.getKey(), stormId.getValue()));
+
+            //TODO: CHECK IF THIS CAN BE REMOVED
+            if(stormIdName != null && stormIdValue != null) {
+                eventSender.send(new LatencyEvent(elapsed)
+                        .service(service)
+                        .error(er)
+                        .attribute(stormIdName, stormIdValue));
+            } else {
+                eventSender.send(new LatencyEvent(elapsed).service(service).error(er));
+            }
+
             startTimestampPerId.remove(latencyId);
             if (logger.isDebugEnabled()) {
                 logger.debug("Monitored latency {} for key {}", elapsed, latencyId);
             }
-        }
-        else {
+        } else {
             eventSender.send(new ExceptionEvent("Latency monitor doesn't recognize key.").service(service));
             if (er == null) {
                 logger.warn("Latency monitor doesn't recognize key {}.", latencyId);
