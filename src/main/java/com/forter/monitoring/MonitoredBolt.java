@@ -6,6 +6,9 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
+import com.forter.monitoring.eventSender.EventsAware;
+import com.forter.monitoring.events.ExceptionEvent;
+import com.forter.monitoring.utils.PairKey;
 import com.google.common.base.Throwables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +55,7 @@ public class MonitoredBolt implements IRichBolt {
 
         @Override
         public void reportError(Throwable error) {
-            Monitor.getMonitor().getEventSender().sendException(error, boltService);
+            Monitor.getMonitor().getEventSender().send(new ExceptionEvent(error).service(boltService));
             super.reportError(error);
         }
     }
