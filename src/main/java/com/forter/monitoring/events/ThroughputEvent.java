@@ -11,7 +11,10 @@ public class ThroughputEvent extends RiemannEvent {
     //A function to make sure the metric doesn't change
     @Override
     public ThroughputEvent metric(double metric) {
-        this.metric = 1;
+        if(metric != 1) {
+            throw new IllegalArgumentException("The metric for a throughput event must be 1.");
+        }
+        this.metric = metric;
         return this;
     }
 
