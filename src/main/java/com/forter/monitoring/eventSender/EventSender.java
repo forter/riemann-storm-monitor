@@ -1,10 +1,14 @@
 package com.forter.monitoring.eventSender;
 
 
+import com.forter.monitoring.events.ExceptionEvent;
+import com.forter.monitoring.events.LatencyEvent;
+import com.forter.monitoring.events.RiemannEvent;
+import com.forter.monitoring.events.ThroughputEvent;
+
 public interface EventSender {
-    void sendThroughputEvent(String service, String messageId);
-    void sendException(Throwable t, String service);
-    void sendException(String description, String service);
-    void sendLatency(long latency, String service, Throwable er);
-    void sendEvent(String description, String service, double metric, String ... tags);
+    void send(ThroughputEvent event);
+    void send(ExceptionEvent event);
+    void send(LatencyEvent event);
+    void send(RiemannEvent event);
 }

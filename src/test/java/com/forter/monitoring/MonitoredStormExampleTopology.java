@@ -12,6 +12,7 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.EventsAware;
+import com.forter.monitoring.events.ThroughputEvent;
 import com.google.common.base.Throwables;
 
 import java.util.Map;
@@ -41,8 +42,8 @@ public class MonitoredStormExampleTopology {
 
         @Override
         public void nextTuple() {
-            es.sendThroughputEvent("nextTuple", String.valueOf(lastId));
-            collector.emit(new Values(""), lastId++);
+            es.send(new ThroughputEvent().service("nextTuple"));
+            collector.emit(new Values("", lastId), lastId++);
         }
 
         @Override
@@ -55,14 +56,14 @@ public class MonitoredStormExampleTopology {
 
         @Override
         public void declareOutputFields(OutputFieldsDeclarer declarer) {
-            declarer.declare(new Fields("word"));
+            declarer.declare(new Fields("word", "id"));
         }
     }
 
     public static class MockBolt extends BaseBasicBolt implements IBasicBolt {
         @Override
         public void declareOutputFields(OutputFieldsDeclarer declarer) {
-            declarer.declare(new Fields("word"));
+            declarer.declare(new Fields("word", "id"));
         }
 
         @Override

@@ -1,6 +1,9 @@
 package com.forter.monitoring.eventSender;
+import com.forter.monitoring.events.ExceptionEvent;
+import com.forter.monitoring.events.LatencyEvent;
+import com.forter.monitoring.events.ThroughputEvent;
 import com.forter.monitoring.utils.RiemannConnection;
-import com.google.common.base.Throwables;
+import com.forter.monitoring.events.RiemannEvent;
 import com.google.common.collect.ObjectArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,58 +25,51 @@ public class RiemannEventSender implements EventSender {
     }
 
     @Override
-    public void sendThroughputEvent(String service, String messageId) {
+    public void send(ThroughputEvent event) {
         try {
-            createEvent()
-                    .metric(1)
-                    .service(machineName + " " + service + " throughput.")
-                    .tags("storm", "throughput").send();
-        } catch (Throwable t) {
-            logger.warn("Riemann error during send : ", t);
-        }
-    }
-
-    @Override
-    public void sendLatency(long latency, String service, Throwable er) {
-        try {
-            createEvent()
-                    .metric(latency)
-                    .service(machineName + " " + service + " latency." )
-                    .tags("storm", "latency")
-                    .state(er == null ? "success" : "failure").send();
+            send((RiemannEvent) event);
         } catch(Throwable t) {
-            logger.warn("Riemann error during send : ", t);
+            logger.warn("Riemann error during throughput event ("+ event.description+") send attempt: ", t);
         }
     }
 
     @Override
-    public void sendException(Throwable t, String service) {
-        sendException(Throwables.getStackTraceAsString(t), service);
-    }
-
-    @Override
-    public void sendException(String description, String service) {
+    public void send(ExceptionEvent event) {
         try {
-            createEvent()
-                    .description(description)
-                    .service(machineName + " " + service)
-                    .tags("storm", "uncaught-exception").send();
-        } catch (Throwable t) {
-            logger.warn("Riemann error during exception ("+description+") send attempt: ", t);
+            send((RiemannEvent) event);
+        } catch(Throwable t) {
+            logger.warn("Riemann error during exception event ("+ event.description+") send attempt: ", t);
         }
     }
 
     @Override
-    public void sendEvent(String description, String service, double metric, String ... tags) {
+    public void send(LatencyEvent event) {
         try {
-            String tagsArr[] = ObjectArrays.concat(tags, new String[]{"storm"}, String.class);
+            send((RiemannEvent) event);
+        } catch(Throwable t) {
+            logger.warn("Riemann error during latency event ("+ event.description+") send attempt: ", t);
+        }
+    }
+
+    @Override
+    public void send(RiemannEvent event) {
+        try {
+            String tagsArr[] = ObjectArrays.concat((String[]) event.tags.toArray(), new String[]{"storm"}, String.class);
+
             createEvent()
-                    .description(description)
-                    .service(machineName + " " + service)
-                    .metric(metric)
-                    .tags(tagsArr).send();
+                    .description(event.description)
+                    .host(event.host)
+                    .service(machineName + " " + event.service)
+                    .state(event.state)
+                    .time(event.time)
+                    .metric(event.metric)
+                    .ttl(event.ttl)
+                    .tags(tagsArr)
+                    .attributes(event.customAttributes)
+                    .send();
+
         } catch (Throwable t) {
-            logger.warn("Riemann error during general event ("+description+") send attempt: ", t);
+            logger.warn("Riemann error during general event ("+ event.description+") send attempt: ", t);
         }
     }
 }

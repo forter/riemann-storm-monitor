@@ -1,10 +1,11 @@
 package com.forter.monitoring.eventSender;
 
-import com.forter.monitoring.eventSender.EventSender;
+import com.forter.monitoring.events.ExceptionEvent;
+import com.forter.monitoring.events.LatencyEvent;
+import com.forter.monitoring.events.RiemannEvent;
+import com.forter.monitoring.events.ThroughputEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Arrays;
 
 /**
  * Writes event to default logger using info level
@@ -14,27 +15,22 @@ public class LoggerEventSender implements EventSender {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Override
-    public void sendThroughputEvent(String service, String messageId) {
-        logger.info("event sendThroughputEvent({},{})", service, messageId);
+    public void send(ThroughputEvent event) {
+        logger.info("send ThroughputEvent : {}", event.toString());
     }
 
     @Override
-    public void sendException(Throwable t, String service) {
-        logger.info("event sendException({},{})", String.valueOf(t), service);
+    public void send(ExceptionEvent event) {
+        logger.info("send ExceptionEvent : {}", event.toString());
     }
 
     @Override
-    public void sendException(String description, String service) {
-        logger.info("event sendException({},{})", description, service);
+    public void send(LatencyEvent event) {
+        logger.info("event send Latency : {}", event.toString());
     }
 
     @Override
-    public void sendLatency(long latency, String service, Throwable t) {
-        logger.info("event sendLatency({},{},{})", latency, service, String.valueOf(t));
-    }
-
-    @Override
-    public void sendEvent(String description, String service, double metric, String... tags) {
-        logger.info("event sendEvent({},{},{},{})", description, service, metric, Arrays.toString(tags));
+    public void send(RiemannEvent event) {
+        logger.info("event send Event : {}", event.toString());
     }
 }

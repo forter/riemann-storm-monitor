@@ -1,6 +1,8 @@
 package com.forter.monitoring;
 import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.LoggerEventSender;
+import com.forter.monitoring.events.ExceptionEvent;
+import com.forter.monitoring.events.LatencyEvent;
 import com.forter.monitoring.utils.RiemannDiscovery;
 import com.forter.monitoring.eventSender.RiemannEventSender;
 import com.google.common.base.Optional;
@@ -72,19 +74,19 @@ public class Monitor {
     public void endLatency(Object id, String service, Throwable er) {
         if(startTimestampPerId.containsKey(id)) {
             long elapsed = NANOSECONDS.toMillis(System.nanoTime() - startTimestampPerId.get(id));
-            eventSender.sendLatency(elapsed, service, er);
+            eventSender.send(new LatencyEvent(elapsed).service(service).error(er));
             startTimestampPerId.remove(id);
             if (logger.isDebugEnabled()) {
                 logger.debug("Monitored latency {} for key {}", elapsed, id);
             }
         }
         else {
-            eventSender.sendException("Latency monitor doesn't recognize key.", service);
+            eventSender.send(new ExceptionEvent("Latency monitor doesn't recognize key.").service(service));
             if (er == null) {
                 logger.warn("Latency monitor doesn't recognize key {}.", id);
             }
             else {
-                eventSender.sendException(er, service);
+                eventSender.send(new ExceptionEvent(er).service(service));
                 logger.warn("Latency monitor doesn't recognize key {}. Swallowed exception {}", id, er);
             }
         }
