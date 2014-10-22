@@ -21,6 +21,7 @@ public class MonitoredSpout implements IRichSpout {
     private final IRichSpout delegate;
     private transient Logger logger;
     private String spoutService;
+    private String idName;
 
     public MonitoredSpout(IRichSpout delegate) {
         this.delegate = delegate;
@@ -113,5 +114,9 @@ public class MonitoredSpout implements IRichSpout {
     @Override
     public Map<String, Object> getComponentConfiguration() {
         return delegate.getComponentConfiguration();
+    }
+
+    public void setIdName(String idName) {
+        this.idName = idName;
     }
 }

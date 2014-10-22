@@ -10,6 +10,7 @@ import com.forter.monitoring.eventSender.EventsAware;
 import com.forter.monitoring.events.ExceptionEvent;
 import com.forter.monitoring.utils.PairKey;
 import com.google.common.base.Throwables;
+import javafx.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +28,8 @@ public class MonitoredBolt implements IRichBolt {
     private String boltService;
 
     private class MonitoredOutputCollector extends OutputCollector {
+        private String idName;
+
         MonitoredOutputCollector(IOutputCollector delegate) {
             super(delegate);
         }
@@ -43,14 +46,33 @@ public class MonitoredBolt implements IRichBolt {
 
         @Override
         public void ack(Tuple input) {
-            Monitor.getMonitor().endLatency(pair(input), boltService, null /*error = null*/ );
+            if(idName != null && input.contains(idName)) {
+                String stormId = input.getStringByField(idName);
+                Monitor.getMonitor().endLatency(pair(input), boltService, new Pair<>(idName, stormId), null /*error = null*/);
+            } else {
+                Monitor.getMonitor().endLatency(pair(input), boltService, null /*error = null*/);
+            }
             super.ack(input);
         }
 
         @Override
         public void fail(Tuple input) {
-            Monitor.getMonitor().endLatency(pair(input), boltService, new Throwable(boltService + " failed to process tuple") );
+            if(idName != null && input.contains(idName)) {
+                String stormId = input.getStringByField(idName);
+                Monitor.getMonitor().endLatency(pair(input), boltService, new Pair<>(idName, stormId), new Throwable(boltService + " failed to process tuple") );
+            } else {
+                Monitor.getMonitor().endLatency(pair(input), boltService, new Throwable(boltService + " failed to process tuple"));
+            }
+
             super.fail(input);
+        }
+
+        /* A function to set the id name in the tuple.
+         * The id name is a unique id to send via custom attributes to riemann,
+         * which can later be used to filter events in various ways (riemann, kibana, etc)
+         */
+        public void setIdName(String idName) {
+            this.idName = idName;
         }
 
         @Override
