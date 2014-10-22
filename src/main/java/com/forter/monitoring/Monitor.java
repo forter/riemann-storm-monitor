@@ -80,7 +80,6 @@ public class Monitor {
         if(startTimestampPerId.containsKey(latencyId)) {
             long elapsed = NANOSECONDS.toMillis(System.nanoTime() - startTimestampPerId.get(latencyId));
 
-            //TODO: CHECK IF THIS CAN BE REMOVED
             if(stormIdName != null && stormIdValue != null) {
                 eventSender.send(new LatencyEvent(elapsed)
                         .service(service)
