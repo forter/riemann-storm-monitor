@@ -60,12 +60,20 @@ public class RiemannEvent {
     }
 
     public RiemannEvent tags(String ... tags) {
-        this.tags = Lists.newArrayList(tags);
+        if(tags == null) {
+            this.tags = Lists.newArrayList(tags);
+        } else {
+            this.tags.addAll(Lists.newArrayList(tags));
+        }
         return this;
     }
 
     public RiemannEvent tags(List<String> tags) {
-        this.tags = tags;
+        if(tags == null) {
+            this.tags = tags;
+        } else {
+            this.tags.addAll(tags);
+        }
         return this;
     }
 
@@ -78,7 +86,11 @@ public class RiemannEvent {
     }
 
     public RiemannEvent attributes(Map<String, String> attributes) {
-        this.customAttributes = attributes;
+        if(this.customAttributes == null) {
+            this.customAttributes = attributes;
+        } else {
+            this.customAttributes.putAll(attributes);
+        }
         return this;
     }
 

@@ -19,7 +19,7 @@ public class RiemannEventSender implements EventSender {
         this.machineName = machineName;
     }
 
-    public com.aphyr.riemann.client.EventDSL createEvent() {
+    private com.aphyr.riemann.client.EventDSL createEvent() {
         return connection.getClient().event();
     }
 
@@ -53,8 +53,6 @@ public class RiemannEventSender implements EventSender {
     @Override
     public void send(RiemannEvent event) {
         try {
-            String tagsArr[] = ObjectArrays.concat(event.tags.toArray(new String[event.tags.size()]), new String[]{"storm"}, String.class);
-
             createEvent()
                     .description(event.description)
                     .host(event.host)
@@ -63,12 +61,31 @@ public class RiemannEventSender implements EventSender {
                     .time(event.time)
                     .metric(event.metric)
                     .ttl(event.ttl)
-                    .tags(tagsArr)
+                    .tag("storm")
+                    .tags(event.tags)
                     .attributes(event.customAttributes)
                     .send();
 
         } catch (Throwable t) {
-            logger.warn("Riemann error during general event ("+ event.description+") send attempt: ", t);
+            logger.warn("Riemann error during event ("+ event.description+") send attempt: ", t);
+        }
+    }
+
+    public void sendRaw(RiemannEvent event) {
+        try {
+            createEvent()
+                    .description(event.description)
+                    .host(event.host)
+                    .service(event.service)
+                    .state(event.state)
+                    .time(event.time)
+                    .metric(event.metric)
+                    .ttl(event.ttl)
+                    .tags(event.tags)
+                    .attributes(event.customAttributes)
+                    .send();
+        } catch (Throwable t) {
+            logger.warn("Riemann error during event ("+event.description+") send attempt: ", t);
         }
     }
 }

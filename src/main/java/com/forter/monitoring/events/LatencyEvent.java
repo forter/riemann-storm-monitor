@@ -1,8 +1,5 @@
 package com.forter.monitoring.events;
 
-import com.google.common.collect.Lists;
-
-import java.util.List;
 
 public class LatencyEvent extends RiemannEvent {
     public Throwable error;
@@ -10,6 +7,7 @@ public class LatencyEvent extends RiemannEvent {
     public LatencyEvent(double latency) {
         super();
         this.metric = latency;
+        this.state = "success";
         this.tags.add("latency");
     }
 
@@ -22,20 +20,6 @@ public class LatencyEvent extends RiemannEvent {
     @Override
     public LatencyEvent service(String service) {
         this.service = service + " latency.";
-        return this;
-    }
-
-    @Override
-    public LatencyEvent tags(String... tags) {
-        this.tags = Lists.newArrayList(tags);
-        this.tags.add("latency");
-        return this;
-    }
-
-    @Override
-    public LatencyEvent tags(List<String> tags) {
-        this.tags = tags;
-        this.tags.add("latency");
         return this;
     }
 }

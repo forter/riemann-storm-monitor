@@ -1,10 +1,6 @@
 package com.forter.monitoring.events;
 
 
-import com.google.common.collect.Lists;
-
-import java.util.List;
-
 public class ThroughputEvent extends RiemannEvent {
     public ThroughputEvent() {
         super();
@@ -22,20 +18,6 @@ public class ThroughputEvent extends RiemannEvent {
     @Override
     public ThroughputEvent service(String service) {
         this.service = service + " throughput.";
-        return this;
-    }
-
-    @Override
-    public ThroughputEvent tags(String ... tags) {
-        this.tags = Lists.newArrayList(tags);
-        this.tags.add("throughput");
-        return this;
-    }
-
-    @Override
-    public ThroughputEvent tags(List<String> tags) {
-        this.tags = tags;
-        this.tags.add("throughput");
         return this;
     }
 }
