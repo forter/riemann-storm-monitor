@@ -54,12 +54,11 @@ public class Monitor {
     }
 
     private Optional<String> getMachineName() {
-       /* try {
+       try {
             return new RiemannDiscovery().retrieveName();
         } catch (IOException e) {
             throw Throwables.propagate(e);
-        }*/
-        return Optional.of("localhost");
+        }
     }
 
     public void startLatency(Object id) {
