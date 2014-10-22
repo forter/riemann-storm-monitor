@@ -17,19 +17,22 @@ builder.setBolt("testMockBolt", new MonitoredBolt(new MockBolt()), 1).localOrShu
 
 ## Features ##
 The riemann-storm-monitor supplies various monitoring tools - 
-* **Events and Functions Throughput measuring** - the usage of this feature requires the user's bolt/spout classes to implement the interface "IEventSenderAware".
+* **Events and Functions Throughput measuring** - the usage of this feature requires the user's bolt/spout classes to implement the interface "EventsAware".
   The implementation is as such - 
   ```java
-  public class MockSpout implements IEventSenderAware{
-        private IEventSender es;
+  public class MockSpout implements EventsAware{
+        private EventSender es;
 
         @Override
-        public void setEventSender(IEventSender es) {
+        public void setEventSender(EventSender es) {
             this.es = es;
         }
         ...
+        private foo() {
+          es.sendEvent("sent each time foo is called","foo called",1,"mytag1","mytag2");
+        }
   ```
 
-* **IEvenSender events (from [IEventSender.java](src/main/java/com/forter/monitoring/IEventSender.java))
+* **IEvenSender events (from [EventSender.java](src/main/java/com/forter/monitoring/EventSender.java))
 
 * **Bolt / Spout latency monitoring** - the usage of this feature is automatic.

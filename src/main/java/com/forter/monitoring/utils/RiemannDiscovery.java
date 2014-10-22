@@ -1,4 +1,4 @@
-package com.forter.monitoring;
+package com.forter.monitoring.utils;
 import com.amazonaws.auth.AWSCredentialsProviderChain;
 import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
 import com.amazonaws.auth.InstanceProfileCredentialsProvider;
