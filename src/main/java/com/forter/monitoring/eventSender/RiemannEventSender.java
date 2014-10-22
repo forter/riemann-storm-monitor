@@ -8,7 +8,6 @@ import com.google.common.collect.ObjectArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class RiemannEventSender implements EventSender {
     private final RiemannConnection connection;
     private final String machineName;
@@ -54,7 +53,7 @@ public class RiemannEventSender implements EventSender {
     @Override
     public void send(RiemannEvent event) {
         try {
-            String tagsArr[] = ObjectArrays.concat((String[]) event.tags.toArray(), new String[]{"storm"}, String.class);
+            String tagsArr[] = ObjectArrays.concat(event.tags.toArray(new String[event.tags.size()]), new String[]{"storm"}, String.class);
 
             createEvent()
                     .description(event.description)
