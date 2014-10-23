@@ -43,7 +43,7 @@ public class MonitoredStormExampleTopology {
         @Override
         public void nextTuple() {
             es.send(new ThroughputEvent().service("nextTuple"));
-            collector.emit(new Values("", lastId), lastId++);
+            collector.emit(new Values("", String.valueOf(lastId)), lastId++);
         }
 
         @Override
@@ -56,14 +56,14 @@ public class MonitoredStormExampleTopology {
 
         @Override
         public void declareOutputFields(OutputFieldsDeclarer declarer) {
-            declarer.declare(new Fields("word", "id"));
+            declarer.declare(new Fields("word", "jobId"));
         }
     }
 
     public static class MockBolt extends BaseBasicBolt implements IBasicBolt {
         @Override
         public void declareOutputFields(OutputFieldsDeclarer declarer) {
-            declarer.declare(new Fields("word", "id"));
+            declarer.declare(new Fields("word", "jobId"));
         }
 
         @Override
@@ -77,10 +77,15 @@ public class MonitoredStormExampleTopology {
     }
 
     public static void main(String[] args) throws Exception {
+        TopologyBuilder builder = new TopologyBuilder();
 
-        TopologyBuilder builder = new MonitoredTopologyBuilder();
-        builder.setSpout("testMockSpout",new MockSpout(), 1);
-        builder.setBolt("testMockBolt", new MockBolt(), 1).localOrShuffleGrouping("testMockSpout");
+        MonitoredSpout mSpout = new MonitoredSpout(new MockSpout());
+        mSpout.setIdName("jobId");
+        MonitoredBolt mBolt = new MonitoredBolt(new BasicBoltExecutor(new MockBolt()));
+        mBolt.setIdName("jobId");
+
+        builder.setSpout("testMockSpout", mSpout, 1);
+        builder.setBolt("testMockBolt", mBolt, 1).localOrShuffleGrouping("testMockSpout");
 
         Config conf = new Config();
         conf.setDebug(false);
