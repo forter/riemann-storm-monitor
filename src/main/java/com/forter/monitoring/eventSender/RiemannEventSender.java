@@ -4,6 +4,7 @@ import com.forter.monitoring.events.LatencyEvent;
 import com.forter.monitoring.events.ThroughputEvent;
 import com.forter.monitoring.utils.RiemannConnection;
 import com.forter.monitoring.events.RiemannEvent;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ObjectArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,20 +88,25 @@ public class RiemannEventSender implements EventSender {
                 .send();
     }
 
-    public void sendRawWithAck(RiemannEvent event) throws IOException {
-        Boolean success = createEvent()
-                      .description(event.description)
-                      .host(event.host)
-                      .service(event.service)
-                      .state(event.state)
-                      .time(event.time)
-                      .metric(event.metric)
-                      .ttl(event.ttl)
-                      .tags(event.tags)
-                      .attributes(event.customAttributes)
-                      .sendWithAck();
-        if(!Boolean.TRUE.equals(success)) {
-            throw new IOException("No ACK received from riemann.");
+    public void sendRawWithAck(RiemannEvent event) {
+        Boolean success = null;
+        try {
+            success = createEvent()
+                    .description(event.description)
+                    .host(event.host)
+                    .service(event.service)
+                    .state(event.state)
+                    .time(event.time)
+                    .metric(event.metric)
+                    .ttl(event.ttl)
+                    .tags(event.tags)
+                    .attributes(event.customAttributes)
+                    .sendWithAck();
+            if (!Boolean.TRUE.equals(success)) {
+                throw new IOException("No ACK received from riemann.");
+            }
+        } catch (IOException e) {
+            throw Throwables.propagate(e);
         }
     }
 }
