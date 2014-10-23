@@ -1,11 +1,12 @@
 package com.forter.monitoring.eventSender;
 import com.forter.monitoring.events.ExceptionEvent;
 import com.forter.monitoring.events.LatencyEvent;
+import com.forter.monitoring.events.RiemannEvent;
 import com.forter.monitoring.events.ThroughputEvent;
 import com.forter.monitoring.utils.RiemannConnection;
-import com.forter.monitoring.events.RiemannEvent;
+
+import com.aphyr.riemann.client.RiemannClient;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ObjectArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,5 +109,9 @@ public class RiemannEventSender implements EventSender {
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }
+    }
+
+    public RiemannClient getRiemannClient() {
+        return connection.getClient();
     }
 }
