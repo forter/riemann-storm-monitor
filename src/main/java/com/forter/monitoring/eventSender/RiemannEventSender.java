@@ -8,6 +8,8 @@ import com.google.common.collect.ObjectArrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+
 public class RiemannEventSender implements EventSender {
     private final RiemannConnection connection;
     private final String machineName;
@@ -72,20 +74,33 @@ public class RiemannEventSender implements EventSender {
     }
 
     public void sendRaw(RiemannEvent event) {
-        try {
-            createEvent()
-                    .description(event.description)
-                    .host(event.host)
-                    .service(event.service)
-                    .state(event.state)
-                    .time(event.time)
-                    .metric(event.metric)
-                    .ttl(event.ttl)
-                    .tags(event.tags)
-                    .attributes(event.customAttributes)
-                    .send();
-        } catch (Throwable t) {
-            logger.warn("Riemann error during event ("+event.description+") send attempt: ", t);
+        createEvent()
+                .description(event.description)
+                .host(event.host)
+                .service(event.service)
+                .state(event.state)
+                .time(event.time)
+                .metric(event.metric)
+                .ttl(event.ttl)
+                .tags(event.tags)
+                .attributes(event.customAttributes)
+                .send();
+    }
+
+    public void sendRawWithAck(RiemannEvent event) throws IOException {
+        Boolean success = createEvent()
+                      .description(event.description)
+                      .host(event.host)
+                      .service(event.service)
+                      .state(event.state)
+                      .time(event.time)
+                      .metric(event.metric)
+                      .ttl(event.ttl)
+                      .tags(event.tags)
+                      .attributes(event.customAttributes)
+                      .sendWithAck();
+        if(!Boolean.TRUE.equals(success)) {
+            throw new IOException("No ACK received from riemann.");
         }
     }
 }
