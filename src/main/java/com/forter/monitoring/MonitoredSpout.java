@@ -3,6 +3,8 @@ import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.OutputFieldsDeclarer;
+import com.forter.monitoring.eventSender.EventsAware;
+import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +22,7 @@ public class MonitoredSpout implements IRichSpout {
     private final IRichSpout delegate;
     private transient Logger logger;
     private String spoutService;
+    private Optional<String> idName;
 
     public MonitoredSpout(IRichSpout delegate) {
         this.delegate = delegate;
@@ -74,7 +77,12 @@ public class MonitoredSpout implements IRichSpout {
 
     @Override
     public void ack(Object id) {
-        Monitor.getMonitor().endLatency(id, spoutService, null /*error = null*/);
+        if(idName.isPresent()) {
+            Monitor.getMonitor().endLatency(id, spoutService, idName.get(), String.valueOf(id), null /*error = null*/);
+        } else {
+            Monitor.getMonitor().endLatency(id, spoutService, null /*error = null*/);
+        }
+
         try {
             delegate.ack(id);
         } catch(Throwable t) {
@@ -85,7 +93,11 @@ public class MonitoredSpout implements IRichSpout {
 
     @Override
     public void fail(Object id) {
-        Monitor.getMonitor().endLatency(id, spoutService, new Throwable("Storm failed."));
+        if(idName.isPresent()) {
+            Monitor.getMonitor().endLatency(id, spoutService, idName.get(), String.valueOf(id), new Throwable("Storm failed."));
+        } else {
+            Monitor.getMonitor().endLatency(id, spoutService, new Throwable("Storm failed."));
+        }
         try {
             delegate.fail(id);
         } catch(Throwable t) {
@@ -112,5 +124,14 @@ public class MonitoredSpout implements IRichSpout {
     @Override
     public Map<String, Object> getComponentConfiguration() {
         return delegate.getComponentConfiguration();
+    }
+
+    /* A function to set the id name in the tuple.
+     * The id name is a unique id to send via custom attributes to riemann,
+     * which can later be used to filter events in various ways (riemann, kibana, etc).
+     * In the spout, the Id value is the id that the spout.ack receives as parameter.
+     */
+    public void setIdName(String idName) {
+        this.idName = Optional.of(idName);
     }
 }

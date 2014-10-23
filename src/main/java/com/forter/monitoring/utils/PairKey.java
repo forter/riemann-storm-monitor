@@ -1,4 +1,4 @@
-package com.forter.monitoring;
+package com.forter.monitoring.utils;
 
 import com.google.common.base.Preconditions;
 
