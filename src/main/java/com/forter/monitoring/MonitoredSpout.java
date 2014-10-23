@@ -4,6 +4,7 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import com.forter.monitoring.eventSender.EventsAware;
+import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +22,7 @@ public class MonitoredSpout implements IRichSpout {
     private final IRichSpout delegate;
     private transient Logger logger;
     private String spoutService;
-    private String idName;
+    private Optional<String> idName;
 
     public MonitoredSpout(IRichSpout delegate) {
         this.delegate = delegate;
@@ -76,8 +77,8 @@ public class MonitoredSpout implements IRichSpout {
 
     @Override
     public void ack(Object id) {
-        if(idName != null) {
-            Monitor.getMonitor().endLatency(id, spoutService, idName, String.valueOf(id), null /*error = null*/);
+        if(idName.isPresent()) {
+            Monitor.getMonitor().endLatency(id, spoutService, idName.get(), String.valueOf(id), null /*error = null*/);
         } else {
             Monitor.getMonitor().endLatency(id, spoutService, null /*error = null*/);
         }
@@ -92,8 +93,8 @@ public class MonitoredSpout implements IRichSpout {
 
     @Override
     public void fail(Object id) {
-        if(idName != null) {
-            Monitor.getMonitor().endLatency(id, spoutService, idName, String.valueOf(id), new Throwable("Storm failed."));
+        if(idName.isPresent()) {
+            Monitor.getMonitor().endLatency(id, spoutService, idName.get(), String.valueOf(id), new Throwable("Storm failed."));
         } else {
             Monitor.getMonitor().endLatency(id, spoutService, new Throwable("Storm failed."));
         }
@@ -131,6 +132,6 @@ public class MonitoredSpout implements IRichSpout {
      * In the spout, the Id value is the id that the spout.ack receives as parameter.
      */
     public void setIdName(String idName) {
-        this.idName = idName;
+        this.idName = Optional.of(idName);
     }
 }

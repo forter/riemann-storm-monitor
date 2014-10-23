@@ -79,14 +79,12 @@ public class Monitor {
         if(startTimestampPerId.containsKey(latencyId)) {
             long elapsed = NANOSECONDS.toMillis(System.nanoTime() - startTimestampPerId.get(latencyId));
 
+            LatencyEvent event = new LatencyEvent(elapsed).service(service).error(er);
+
             if(stormIdName != null && stormIdValue != null) {
-                eventSender.send(new LatencyEvent(elapsed)
-                        .service(service)
-                        .error(er)
-                        .attribute(stormIdName, stormIdValue));
-            } else {
-                eventSender.send(new LatencyEvent(elapsed).service(service).error(er));
+                event.attribute(stormIdName, stormIdValue);
             }
+            eventSender.send(event);
 
             startTimestampPerId.remove(latencyId);
             if (logger.isDebugEnabled()) {
