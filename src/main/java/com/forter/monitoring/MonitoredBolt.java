@@ -9,6 +9,7 @@ import backtype.storm.tuple.Tuple;
 import com.forter.monitoring.eventSender.EventsAware;
 import com.forter.monitoring.events.ExceptionEvent;
 import com.forter.monitoring.utils.PairKey;
+import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,8 +26,10 @@ public class MonitoredBolt implements IRichBolt {
     private final IRichBolt delegate;
     private transient Logger logger;
     private String boltService;
+    protected Optional<String> stormIdName;
 
     private class MonitoredOutputCollector extends OutputCollector {
+
         MonitoredOutputCollector(IOutputCollector delegate) {
             super(delegate);
         }
@@ -43,13 +46,24 @@ public class MonitoredBolt implements IRichBolt {
 
         @Override
         public void ack(Tuple input) {
-            Monitor.getMonitor().endLatency(pair(input), boltService, null /*error = null*/ );
+            if(stormIdName.isPresent() && input.contains(stormIdName.get())) {
+                String stormId = input.getStringByField(stormIdName.get());
+                Monitor.getMonitor().endLatency(pair(input), boltService, stormIdName.get(), stormId, null /*error = null*/);
+            } else {
+                Monitor.getMonitor().endLatency(pair(input), boltService, /*error = */ null);
+            }
             super.ack(input);
         }
 
         @Override
         public void fail(Tuple input) {
-            Monitor.getMonitor().endLatency(pair(input), boltService, new Throwable(boltService + " failed to process tuple") );
+            if(stormIdName.isPresent() && input.contains(stormIdName.get())) {
+                String stormId = input.getStringByField(stormIdName.get());
+                Monitor.getMonitor().endLatency(pair(input), boltService, stormIdName.get(), stormId, new Throwable(boltService + " failed to process tuple") );
+            } else {
+                Monitor.getMonitor().endLatency(pair(input), boltService, new Throwable(boltService + " failed to process tuple"));
+            }
+
             super.fail(input);
         }
 
@@ -119,6 +133,15 @@ public class MonitoredBolt implements IRichBolt {
     public Map<String, Object> getComponentConfiguration() {
         return delegate.getComponentConfiguration();
     }
+
+    /* A function to set the id name in the tuple.
+         * The id name is a unique id to send via custom attributes to riemann,
+         * which can later be used to filter events in various ways (riemann, kibana, etc)
+         */
+    public void setIdName(String idName) {
+        stormIdName = Optional.of(idName);
+    }
+
 }
 
 
