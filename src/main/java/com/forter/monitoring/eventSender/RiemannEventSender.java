@@ -1,4 +1,5 @@
 package com.forter.monitoring.eventSender;
+import com.aphyr.riemann.client.EventDSL;
 import com.forter.monitoring.events.ExceptionEvent;
 import com.forter.monitoring.events.LatencyEvent;
 import com.forter.monitoring.events.RiemannEvent;
@@ -57,18 +58,22 @@ public class RiemannEventSender implements EventSender {
     @Override
     public void send(RiemannEvent event) {
         try {
-            createEvent()
-                    .description(event.description)
-                    .host(event.host)
-                    .service(machineName + " " + event.service)
-                    .state(event.state)
-                    .time(event.time)
-                    .metric(event.metric)
-                    .ttl(event.ttl)
-                    .tag("storm")
-                    .tags(event.tags)
-                    .attributes(event.customAttributes)
-                    .send();
+            EventDSL eventDSL = createEvent()
+                                .description(event.description)
+                                .service(machineName + " " + event.service)
+                                .state(event.state)
+                                .time(System.currentTimeMillis() / 1000L)
+                                .metric(event.metric)
+                                .ttl(event.ttl)
+                                .tag("storm")
+                                .tags(event.tags)
+                                .attributes(event.customAttributes);
+
+            //To avoid 127.0.0.1 appearing as event host
+            if(event.host != null) {
+                eventDSL.host(event.host);
+            }
+            eventDSL.send();
 
         } catch (Throwable t) {
             logger.warn("Riemann error during event ("+ event.description+") send attempt: ", t);
