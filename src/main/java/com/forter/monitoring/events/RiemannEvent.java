@@ -20,22 +20,10 @@ public class RiemannEvent {
     public Map<String, String> customAttributes;
 
     /**
-     * Initialize a new custom event
+     * Initialize a new RiemannEvent
      */
     public RiemannEvent() {
-        this(true);
-    }
-
-    /**
-     * Initialize a new RiemannEvent
-     * @param isCustomEvent whether or not this should be considered a custom event (due to Riemann filters applied
-     *                    in server)
-     */
-    protected RiemannEvent(boolean isCustomEvent) {
         tags = Lists.newArrayList();
-        if (isCustomEvent) {
-            tags.add("custom-event");
-        }
         customAttributes = Maps.newHashMap();
     }
 

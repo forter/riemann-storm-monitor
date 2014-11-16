@@ -4,9 +4,9 @@ import com.google.common.base.Throwables;
 
 public class ExceptionEvent extends RiemannEvent {
     public ExceptionEvent(String exMessage) {
-        super(true);
+        super();
         this.description(exMessage);
-        this.tags.add("unexpected-exception");
+        this.tags.add("exception");
     }
 
     public ExceptionEvent(Throwable t) {

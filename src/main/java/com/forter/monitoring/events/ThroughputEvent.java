@@ -3,7 +3,7 @@ package com.forter.monitoring.events;
 
 public class ThroughputEvent extends RiemannEvent {
     public ThroughputEvent() {
-        super(false);
+        super();
         this.metric = 1;
         this.tags.add("throughput");
     }

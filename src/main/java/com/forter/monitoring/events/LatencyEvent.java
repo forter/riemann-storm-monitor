@@ -5,7 +5,7 @@ public class LatencyEvent extends RiemannEvent {
     public Throwable error;
 
     public LatencyEvent(double latency) {
-        super(false);
+        super();
         this.metric = latency;
         this.state = "success";
         this.tags.add("latency");
