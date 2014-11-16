@@ -28,12 +28,12 @@ public class RiemannEvent {
 
     /**
      * Initialize a new RiemannEvent
-     * @param customEvent whether or not this should be considered a custom event (due to Riemann filters applied
+     * @param isCustomEvent whether or not this should be considered a custom event (due to Riemann filters applied
      *                    in server)
      */
-    protected RiemannEvent(boolean customEvent) {
+    protected RiemannEvent(boolean isCustomEvent) {
         tags = Lists.newArrayList();
-        if (customEvent) {
+        if (isCustomEvent) {
             tags.add("custom-event");
         }
         customAttributes = Maps.newHashMap();
