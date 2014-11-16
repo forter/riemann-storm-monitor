@@ -1,5 +1,5 @@
 #riemann-storm-monitor
-=========
+==========
 
 The riemann-storm-monitor is a library that acts as a riemann agent.
 The library supplies various tools meant for monitoring of storm topologies.
