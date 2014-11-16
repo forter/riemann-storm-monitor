@@ -6,6 +6,7 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
+import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.EventsAware;
 import com.forter.monitoring.events.ExceptionEvent;
 import com.forter.monitoring.utils.PairKey;
@@ -122,6 +123,10 @@ public class MonitoredBolt implements IRichBolt {
             logger.info("Error during bolt cleanup : ", t);
             throw Throwables.propagate(t);
         }
+    }
+
+    public EventSender getEventSender() {
+        return Monitor.getMonitor().getEventSender();
     }
 
     @Override

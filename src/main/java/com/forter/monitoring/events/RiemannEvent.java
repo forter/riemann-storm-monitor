@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -18,9 +19,23 @@ public class RiemannEvent {
     public List<String> tags;
     public Map<String, String> customAttributes;
 
-
+    /**
+     * Initialize a new custom event
+     */
     public RiemannEvent() {
+        this(true);
+    }
+
+    /**
+     * Initialize a new RiemannEvent
+     * @param customEvent whether or not this should be considered a custom event (due to Riemann filters applied
+     *                    in server)
+     */
+    protected RiemannEvent(boolean customEvent) {
         tags = Lists.newArrayList();
+        if (customEvent) {
+            tags.add("custom-event");
+        }
         customAttributes = Maps.newHashMap();
     }
 
@@ -60,18 +75,12 @@ public class RiemannEvent {
     }
 
     public RiemannEvent tags(String ... tags) {
-        if(tags == null) {
-            this.tags = Lists.newArrayList(tags);
-        } else {
-            this.tags.addAll(Lists.newArrayList(tags));
-        }
+        this.tags(Arrays.asList(tags));
         return this;
     }
 
     public RiemannEvent tags(List<String> tags) {
-        if(tags == null) {
-            this.tags = tags;
-        } else {
+        if(tags != null) {
             this.tags.addAll(tags);
         }
         return this;
