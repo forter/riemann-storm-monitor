@@ -71,19 +71,24 @@ public class Monitor {
         }
     }
 
-    public void endLatency(Object latencyId, String service, Throwable er) {
-        endLatency(latencyId, service, null, null, er);
+    public void endLatency(Object latencyId, String service, Map<String,String> customAttributes, Throwable er) {
+        endLatency(latencyId, service, customAttributes, null, null, er);
     }
 
-    public void endLatency(Object latencyId, String service, String stormIdName, String stormIdValue, Throwable er) {
+    public void endLatency(Object latencyId, String service, Map<String,String> customAttributes, String stormIdName, String stormIdValue, Throwable er) {
         if(startTimestampPerId.containsKey(latencyId)) {
             long elapsed = NANOSECONDS.toMillis(System.nanoTime() - startTimestampPerId.get(latencyId));
 
-            LatencyEvent event = new LatencyEvent(elapsed).service(service).error(er);
+            LatencyEvent event = new LatencyEvent(elapsed)
+                    .service(service)
+                    .error(er);
 
             if(stormIdName != null && stormIdValue != null) {
                 event.attribute(stormIdName, stormIdValue);
             }
+
+            event.attributes(customAttributes);
+
             eventSender.send(event);
 
             startTimestampPerId.remove(latencyId);
@@ -91,12 +96,16 @@ public class Monitor {
                 logger.debug("Monitored latency {} for key {}", elapsed, latencyId);
             }
         } else {
-            eventSender.send(new ExceptionEvent("Latency monitor doesn't recognize key.").service(service));
+            eventSender.send(new ExceptionEvent("Latency monitor doesn't recognize key.")
+                    .service(service)
+                    .attributes(customAttributes));
             if (er == null) {
                 logger.warn("Latency monitor doesn't recognize key {}.", latencyId);
             }
             else {
-                eventSender.send(new ExceptionEvent(er).service(service));
+                eventSender.send(new ExceptionEvent(er)
+                        .service(service)
+                        .attributes(customAttributes));
                 logger.warn("Latency monitor doesn't recognize key {}. Swallowed exception {}", latencyId, er);
             }
         }
