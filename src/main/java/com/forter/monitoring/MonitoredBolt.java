@@ -30,6 +30,7 @@ public class MonitoredBolt implements IRichBolt {
     private String boltService;
     protected Optional<String> stormIdName;
     private EventSender eventSender;
+    private Map<String, String> customAttributes;
 
     private class MonitoredOutputCollector extends OutputCollector {
 
@@ -51,9 +52,9 @@ public class MonitoredBolt implements IRichBolt {
         public void ack(Tuple input) {
             if(stormIdName.isPresent() && input.contains(stormIdName.get())) {
                 String stormId = input.getStringByField(stormIdName.get());
-                Monitor.getMonitor().endLatency(pair(input), boltService, stormIdName.get(), stormId, null /*error = null*/);
+                Monitor.getMonitor().endLatency(pair(input), boltService, customAttributes, stormIdName.get(), stormId, null /*error = null*/);
             } else {
-                Monitor.getMonitor().endLatency(pair(input), boltService, /*error = */ null);
+                Monitor.getMonitor().endLatency(pair(input), boltService, customAttributes, /*error = */ null);
             }
             super.ack(input);
         }
@@ -62,9 +63,9 @@ public class MonitoredBolt implements IRichBolt {
         public void fail(Tuple input) {
             if(stormIdName.isPresent() && input.contains(stormIdName.get())) {
                 String stormId = input.getStringByField(stormIdName.get());
-                Monitor.getMonitor().endLatency(pair(input), boltService, stormIdName.get(), stormId, new Throwable(boltService + " failed to process tuple") );
+                Monitor.getMonitor().endLatency(pair(input), boltService, customAttributes, stormIdName.get(), stormId, new Throwable(boltService + " failed to process tuple") );
             } else {
-                Monitor.getMonitor().endLatency(pair(input), boltService, new Throwable(boltService + " failed to process tuple"));
+                Monitor.getMonitor().endLatency(pair(input), boltService, customAttributes, new Throwable(boltService + " failed to process tuple"));
             }
 
             super.fail(input);
@@ -92,7 +93,9 @@ public class MonitoredBolt implements IRichBolt {
         try {
             boltService = context.getThisComponentId();
             logger = LoggerFactory.getLogger(boltService);
-            eventSender = createEventSender(conf);
+            customAttributes = extractCustomEventAttributes(conf);
+            eventSender = createEventSender(customAttributes);
+
 
             injectEventSender(delegate, eventSender);
             delegate.prepare(conf, context, new MonitoredOutputCollector(collector));
@@ -102,33 +105,32 @@ public class MonitoredBolt implements IRichBolt {
         }
     }
 
-    private EventSender createEventSender(Map conf) {
-        final Map<String,String> customEventAttributes = extractCustomEventAttributes(conf);
+    private EventSender createEventSender(Map customAttributes) {
         final EventSender innerEventSender = Monitor.getMonitor().getEventSender();
+        final Map attributesToSet = customAttributes;
         EventSender wrapperEventSender = new EventSender() {
-
 
             @Override
             public void send(ThroughputEvent event) {
-                event.attributes(customEventAttributes);
+                event.attributes(attributesToSet);
                 innerEventSender.send(event);
             }
 
             @Override
             public void send(ExceptionEvent event) {
-                event.attributes(customEventAttributes);
+                event.attributes(attributesToSet);
                 innerEventSender.send(event);
             }
 
             @Override
             public void send(LatencyEvent event) {
-                event.attributes(customEventAttributes);
+                event.attributes(attributesToSet);
                 innerEventSender.send(event);
             }
 
             @Override
             public void send(RiemannEvent event) {
-                event.attributes(customEventAttributes);
+                event.attributes(attributesToSet);
                 innerEventSender.send(event);
             }
         };
