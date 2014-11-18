@@ -15,7 +15,7 @@ public class RiemannEvent {
     public String state;
     public long time;
     public double metric;
-    public float ttl;
+    public Float ttl;
     public List<String> tags;
     public Map<String, String> customAttributes;
 

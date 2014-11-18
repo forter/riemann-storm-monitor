@@ -18,6 +18,9 @@ public class RiemannEventSender implements EventSender {
     private final String machineName;
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
+    // A temporary field for the v0.8.6.1 fix. will be removed later.
+    private final float DEFAULT_TTL_SEC = 5f;
+
     public RiemannEventSender(String machineName) {
         this.connection = new RiemannConnection(machineName);
         connection.connect();
@@ -64,7 +67,7 @@ public class RiemannEventSender implements EventSender {
                                 .state(event.state)
                                 .time(System.currentTimeMillis() / 1000L)
                                 .metric(event.metric)
-                                .ttl(event.ttl)
+                                .ttl(event.ttl == null ? DEFAULT_TTL_SEC : event.ttl)
                                 .tag("storm")
                                 .tags(event.tags)
                                 .attributes(event.customAttributes);
