@@ -9,15 +9,16 @@ import backtype.storm.tuple.Tuple;
 import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.EventsAware;
 import com.forter.monitoring.events.ExceptionEvent;
+import com.forter.monitoring.events.LatencyEvent;
+import com.forter.monitoring.events.RiemannEvent;
+import com.forter.monitoring.events.ThroughputEvent;
 import com.forter.monitoring.utils.PairKey;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /*
 * This class creates a monitored wrapper around other bolt classes to measure the time from execution till ack/fail.
@@ -28,6 +29,7 @@ public class MonitoredBolt implements IRichBolt {
     private transient Logger logger;
     private String boltService;
     protected Optional<String> stormIdName;
+    private EventSender eventSender;
 
     private class MonitoredOutputCollector extends OutputCollector {
 
@@ -70,7 +72,7 @@ public class MonitoredBolt implements IRichBolt {
 
         @Override
         public void reportError(Throwable error) {
-            Monitor.getMonitor().getEventSender().send(new ExceptionEvent(error).service(boltService));
+            getEventSender().send(new ExceptionEvent(error).service(boltService));
             super.reportError(error);
         }
     }
@@ -79,9 +81,9 @@ public class MonitoredBolt implements IRichBolt {
         this.delegate = delegate;
     }
 
-    private static void injectEventSender(IRichBolt delegate) {
+    private static void injectEventSender(IRichBolt delegate, EventSender eventSender) {
         if(delegate instanceof EventsAware) {
-            ((EventsAware) delegate).setEventSender(Monitor.getMonitor().getEventSender());
+            ((EventsAware) delegate).setEventSender(eventSender);
         }
     }
 
@@ -90,12 +92,75 @@ public class MonitoredBolt implements IRichBolt {
         try {
             boltService = context.getThisComponentId();
             logger = LoggerFactory.getLogger(boltService);
-            injectEventSender(delegate);
+            eventSender = createEventSender(conf);
+
+            injectEventSender(delegate, eventSender);
             delegate.prepare(conf, context, new MonitoredOutputCollector(collector));
         } catch(Throwable t) {
             logger.warn("Error during bolt prepare : ", t);
             throw Throwables.propagate(t);
         }
+    }
+
+    private EventSender createEventSender(Map conf) {
+        final Map<String,String> customEventAttributes = extractCustomEventAttributes(conf);
+        final EventSender innerEventSender = Monitor.getMonitor().getEventSender();
+        EventSender wrapperEventSender = new EventSender() {
+
+
+            @Override
+            public void send(ThroughputEvent event) {
+                event.attributes(customEventAttributes);
+                innerEventSender.send(event);
+            }
+
+            @Override
+            public void send(ExceptionEvent event) {
+                event.attributes(customEventAttributes);
+                innerEventSender.send(event);
+            }
+
+            @Override
+            public void send(LatencyEvent event) {
+                event.attributes(customEventAttributes);
+                innerEventSender.send(event);
+            }
+
+            @Override
+            public void send(RiemannEvent event) {
+                event.attributes(customEventAttributes);
+                innerEventSender.send(event);
+            }
+        };
+        return wrapperEventSender;
+    }
+
+    private Map<String,String> extractCustomEventAttributes(Map conf) {
+        if (conf.containsKey("topology.riemann.attributes")) {
+            Object attributes = conf.get("topology.riemann.attributes");
+            if (attributes instanceof String) {
+                String attributesString = (String) attributes;
+                return parseAttributesString(attributesString);
+            } else {
+                logger.warn("Wrong type of custom attributes for riemann, supposed to be String but is {}", attributes.getClass());
+            }
+        }
+
+        return new HashMap<String, String>();
+    }
+
+    private Map<String,String> parseAttributesString(String attributesString) {
+        Map<String, String> attributesMap = new HashMap<String, String>();
+
+        for (String attribute : attributesString.split(",")) {
+            String[] keyValue = attribute.split("=");
+            if (keyValue.length != 2) {
+                logger.warn("Bad format of custom attribute - {}", keyValue);
+                continue;
+            }
+            attributesMap.put(keyValue[0], keyValue[1]);
+        }
+        return attributesMap;
     }
 
     @Override
@@ -126,7 +191,7 @@ public class MonitoredBolt implements IRichBolt {
     }
 
     public EventSender getEventSender() {
-        return Monitor.getMonitor().getEventSender();
+        return this.eventSender;
     }
 
     @Override
