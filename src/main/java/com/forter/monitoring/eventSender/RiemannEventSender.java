@@ -24,28 +24,9 @@ public class RiemannEventSender implements EventSender {
         this.machineName = machineName;
     }
 
-    private com.aphyr.riemann.client.EventDSL createRawEvent(RiemannEvent event) {
-        EventDSL eventDSL = connection.getClient().event()
-                .description(event.description)
-                .host(event.host)
-                .service(event.service)
-                .state(event.state)
-                .tags(event.tags)
-                .attributes(event.customAttributes);
-
-        //Giving a null value for all the numeric fields
-        if(event.time != null) {
-            eventDSL.time(event.time);
-        }
-        if(event.ttl != null) {
-            eventDSL.time(event.ttl);
-        }
-        if(event.metric != null) {
-            eventDSL.time(event.metric);
-        }
-        return eventDSL;
+    private com.aphyr.riemann.client.EventDSL createEvent() {
+        return connection.getClient().event();
     }
-
 
     @Override
     public void send(ThroughputEvent event) {
@@ -77,16 +58,21 @@ public class RiemannEventSender implements EventSender {
     @Override
     public void send(RiemannEvent event) {
         try {
-            EventDSL eventDSL = createRawEvent(event)
+            EventDSL eventDSL = createEvent()
+                                .description(event.description)
                                 .service(machineName + " " + event.service)
+                                .state(event.state)
                                 .time(System.currentTimeMillis() / 1000L)
-                                .tag("storm");
+                                .metric(event.metric)
+                                .ttl(event.ttl)
+                                .tag("storm")
+                                .tags(event.tags)
+                                .attributes(event.customAttributes);
 
             //To avoid 127.0.0.1 appearing as event host
             if(event.host != null) {
                 eventDSL.host(event.host);
             }
-
             eventDSL.send();
 
         } catch (Throwable t) {
@@ -95,14 +81,33 @@ public class RiemannEventSender implements EventSender {
     }
 
     public void sendRaw(RiemannEvent event) {
-        createRawEvent(event).send();
+        createEvent()
+                .description(event.description)
+                .host(event.host)
+                .service(event.service)
+                .state(event.state)
+                .time(event.time)
+                .metric(event.metric)
+                .ttl(event.ttl)
+                .tags(event.tags)
+                .attributes(event.customAttributes)
+                .send();
     }
-
 
     public void sendRawWithAck(RiemannEvent event) {
         Boolean success = null;
         try {
-            success = createRawEvent(event).sendWithAck();
+            success = createEvent()
+                    .description(event.description)
+                    .host(event.host)
+                    .service(event.service)
+                    .state(event.state)
+                    .time(event.time)
+                    .metric(event.metric)
+                    .ttl(event.ttl)
+                    .tags(event.tags)
+                    .attributes(event.customAttributes)
+                    .sendWithAck();
             if (!Boolean.TRUE.equals(success)) {
                 throw new IOException("No ACK received from riemann.");
             }
