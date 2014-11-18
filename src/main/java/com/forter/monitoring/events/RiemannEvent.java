@@ -13,8 +13,8 @@ public class RiemannEvent {
     public String description;
     public String service;
     public String state;
-    public Long time;
-    public Double metric;
+    public long time;
+    public double metric;
     public Float ttl;
     public List<String> tags;
     public Map<String, String> customAttributes;
