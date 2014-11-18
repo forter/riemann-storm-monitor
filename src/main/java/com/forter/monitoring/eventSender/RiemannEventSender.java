@@ -91,7 +91,7 @@ public class RiemannEventSender implements EventSender {
                 .state(event.state)
                 .time(event.time)
                 .metric(event.metric)
-                .ttl(event.ttl)
+                .ttl(event.ttl == null ? DEFAULT_TTL_SEC : event.ttl)
                 .tags(event.tags)
                 .attributes(event.customAttributes)
                 .send();
@@ -107,7 +107,7 @@ public class RiemannEventSender implements EventSender {
                     .state(event.state)
                     .time(event.time)
                     .metric(event.metric)
-                    .ttl(event.ttl)
+                    .ttl(event.ttl == null ? DEFAULT_TTL_SEC : event.ttl)
                     .tags(event.tags)
                     .attributes(event.customAttributes)
                     .sendWithAck();
