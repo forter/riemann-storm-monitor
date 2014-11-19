@@ -15,21 +15,6 @@ public class LoggerEventSender implements EventSender {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Override
-    public void send(ThroughputEvent event) {
-        logger.info("send ThroughputEvent : {}", event);
-    }
-
-    @Override
-    public void send(ExceptionEvent event) {
-        logger.info("send ExceptionEvent : {}", event);
-    }
-
-    @Override
-    public void send(LatencyEvent event) {
-        logger.info("event send Latency : {}", event);
-    }
-
-    @Override
     public void send(RiemannEvent event) {
         logger.info("event send Event : {}", event);
     }

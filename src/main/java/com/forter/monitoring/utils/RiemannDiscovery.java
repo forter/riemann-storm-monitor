@@ -53,7 +53,7 @@ public class RiemannDiscovery {
         return result;
     }
 
-    public boolean isAWS() {
+    public static boolean isAWS() {
         String path = System.getProperty("AWS_CLI_CONFIG_FILE", System.getProperty("user.home") + "/.aws/config");
         File f = new File(path);
         return !f.exists();

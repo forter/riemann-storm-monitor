@@ -3,6 +3,7 @@ import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.OutputFieldsDeclarer;
+import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.EventsAware;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
@@ -23,14 +24,15 @@ public class MonitoredSpout implements IRichSpout {
     private transient Logger logger;
     private String spoutService;
     private Optional<String> idName;
+    private Monitor monitor;
 
     public MonitoredSpout(IRichSpout delegate) {
         this.delegate = delegate;
     }
 
-    private static void injectEventSender(IRichSpout delegate) {
+    private static void injectEventSender(IRichSpout delegate, EventSender eventSender) {
         if(delegate instanceof EventsAware) {
-            ((EventsAware) delegate).setEventSender(Monitor.getMonitor().getEventSender());
+            ((EventsAware) delegate).setEventSender(eventSender);
         }
     }
 
@@ -38,20 +40,21 @@ public class MonitoredSpout implements IRichSpout {
     public void open(Map conf, final TopologyContext context, SpoutOutputCollector collector) {
         logger = LoggerFactory.getLogger(delegate.getClass());
         spoutService = context.getThisComponentId();
-        injectEventSender(delegate);
+        monitor = new Monitor();
+        injectEventSender(delegate, monitor);
         try {
             delegate.open(conf, context, new SpoutOutputCollector(collector) {
                 @Override
                 public List<Integer> emit(String streamId, List<Object> tuple, Object messageId) {
                     List<Integer> emitResult = super.emit(streamId, tuple, messageId);
-                    Monitor.getMonitor().startLatency(messageId);
+                    monitor.startLatency(messageId);
                     return emitResult;
                 }
 
                 @Override
                 public void emitDirect(int taskId, String streamId, List<Object> tuple, Object messageId) {
                     super.emitDirect(taskId, streamId, tuple, messageId);
-                    Monitor.getMonitor().startLatency(messageId);
+                    monitor.startLatency(messageId);
                 }
             });
         } catch(Throwable t) {
@@ -78,9 +81,9 @@ public class MonitoredSpout implements IRichSpout {
     @Override
     public void ack(Object id) {
         if(idName.isPresent()) {
-            Monitor.getMonitor().endLatency(id, spoutService, idName.get(), String.valueOf(id), null /*error = null*/);
+            monitor.endLatency(id, spoutService, idName.get(), String.valueOf(id), null /*error = null*/);
         } else {
-            Monitor.getMonitor().endLatency(id, spoutService, null /*error = null*/);
+            monitor.endLatency(id, spoutService, null /*error = null*/);
         }
 
         try {
@@ -94,9 +97,9 @@ public class MonitoredSpout implements IRichSpout {
     @Override
     public void fail(Object id) {
         if(idName.isPresent()) {
-            Monitor.getMonitor().endLatency(id, spoutService, idName.get(), String.valueOf(id), new Throwable("Storm failed."));
+            monitor.endLatency(id, spoutService, idName.get(), String.valueOf(id), new Throwable("Storm failed."));
         } else {
-            Monitor.getMonitor().endLatency(id, spoutService, new Throwable("Storm failed."));
+            monitor.endLatency(id, spoutService, new Throwable("Storm failed."));
         }
         try {
             delegate.fail(id);

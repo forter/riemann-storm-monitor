@@ -1,12 +1,11 @@
 package com.forter.monitoring.eventSender;
 import com.aphyr.riemann.client.EventDSL;
-import com.forter.monitoring.events.ExceptionEvent;
-import com.forter.monitoring.events.LatencyEvent;
 import com.forter.monitoring.events.RiemannEvent;
-import com.forter.monitoring.events.ThroughputEvent;
 import com.forter.monitoring.utils.RiemannConnection;
 
 import com.aphyr.riemann.client.RiemannClient;
+import com.forter.monitoring.utils.RiemannDiscovery;
+import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 
 public class RiemannEventSender implements EventSender {
+    private static volatile transient RiemannEventSender singleton;
     private final RiemannConnection connection;
     private final String machineName;
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -21,41 +21,39 @@ public class RiemannEventSender implements EventSender {
     // A temporary field for the v0.8.6.1 fix. will be removed later.
     private final float DEFAULT_TTL_SEC = 5f;
 
-    public RiemannEventSender(String machineName) {
+    public static RiemannEventSender getRiemannEventsSender() {
+        if(singleton == null) {
+            synchronized (RiemannEventSender.class) {
+                if(singleton == null) {
+                    singleton = new RiemannEventSender();
+                }
+            }
+        }
+        return singleton;
+    }
+
+    private RiemannEventSender() {
+        this.machineName = retrieveMachineName();
         this.connection = new RiemannConnection(machineName);
         connection.connect();
-        this.machineName = machineName;
     }
+
+    private String retrieveMachineName() {
+        try {
+            Optional<String> machineName = new RiemannDiscovery().retrieveName();
+            if (!machineName.isPresent()) {
+                throw new Error("No machine name!");
+            }
+            return machineName.get();
+        } catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+
 
     private com.aphyr.riemann.client.EventDSL createEvent() {
         return connection.getClient().event();
-    }
-
-    @Override
-    public void send(ThroughputEvent event) {
-        try {
-            send((RiemannEvent) event);
-        } catch(Throwable t) {
-            logger.warn("Riemann error during throughput event ("+ event.description+") send attempt: ", t);
-        }
-    }
-
-    @Override
-    public void send(ExceptionEvent event) {
-        try {
-            send((RiemannEvent) event);
-        } catch(Throwable t) {
-            logger.warn("Riemann error during exception event ("+ event.description+") send attempt: ", t);
-        }
-    }
-
-    @Override
-    public void send(LatencyEvent event) {
-        try {
-            send((RiemannEvent) event);
-        } catch(Throwable t) {
-            logger.warn("Riemann error during latency event ("+ event.description+") send attempt: ", t);
-        }
     }
 
     @Override

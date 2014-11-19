@@ -1,8 +1,10 @@
 package com.forter.monitoring;
 import com.forter.monitoring.eventSender.EventSender;
+import com.forter.monitoring.eventSender.EventsAware;
 import com.forter.monitoring.eventSender.LoggerEventSender;
 import com.forter.monitoring.events.ExceptionEvent;
 import com.forter.monitoring.events.LatencyEvent;
+import com.forter.monitoring.events.RiemannEvent;
 import com.forter.monitoring.utils.RiemannDiscovery;
 import com.forter.monitoring.eventSender.RiemannEventSender;
 import com.google.common.base.Optional;
@@ -20,45 +22,23 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 This singleton class centralizes the storm-monitoring functions.
 The monitored bolts and spouts will use the functions in this class.
  */
-public class Monitor {
-    private static volatile transient Monitor singleton;
-
+public class Monitor implements EventSender {
     private final EventSender eventSender;
     private final Map<Object, Long> startTimestampPerId;
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-
-    private Monitor() {
-        Optional<String> machineName = getMachineName();
+    public Monitor() {
         startTimestampPerId = Maps.newConcurrentMap();
-        if (machineName.isPresent()) {
-            eventSender = new RiemannEventSender(machineName.get());
+        if (RiemannDiscovery.isAWS()) {
+            eventSender = RiemannEventSender.getRiemannEventsSender();
         } else {
             //fallback for local mode
             eventSender = new LoggerEventSender();
         }
     }
 
-    public static Monitor getMonitor() {
-        if(singleton == null) {
-            synchronized (Monitor.class) {
-                if(singleton == null)
-                    singleton = new Monitor();
-            }
-        }
-        return singleton;
-    }
-
-    public EventSender getEventSender() {
-        return eventSender;
-    }
-
-    private Optional<String> getMachineName() {
-       try {
-            return new RiemannDiscovery().retrieveName();
-        } catch (IOException e) {
-            throw Throwables.propagate(e);
-        }
+    public void send(RiemannEvent event) {
+        eventSender.send(event);
     }
 
     public void startLatency(Object id) {
@@ -84,19 +64,19 @@ public class Monitor {
             if(stormIdName != null && stormIdValue != null) {
                 event.attribute(stormIdName, stormIdValue);
             }
-            eventSender.send(event);
+            send(event);
 
             startTimestampPerId.remove(latencyId);
             if (logger.isDebugEnabled()) {
                 logger.debug("Monitored latency {} for key {}", elapsed, latencyId);
             }
         } else {
-            eventSender.send(new ExceptionEvent("Latency monitor doesn't recognize key.").service(service));
+            send(new ExceptionEvent("Latency monitor doesn't recognize key.").service(service));
             if (er == null) {
                 logger.warn("Latency monitor doesn't recognize key {}.", latencyId);
             }
             else {
-                eventSender.send(new ExceptionEvent(er).service(service));
+                send(new ExceptionEvent(er).service(service));
                 logger.warn("Latency monitor doesn't recognize key {}. Swallowed exception {}", latencyId, er);
             }
         }
