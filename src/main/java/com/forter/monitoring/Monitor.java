@@ -40,6 +40,10 @@ public class Monitor implements EventSender {
         customAttributes = extractCustomEventAttributes(conf);
     }
 
+    public Monitor() {
+        this(new HashMap());
+    }
+
     public void send(RiemannEvent event) {
         event.attributes(customAttributes);
         eventSender.send(event);
