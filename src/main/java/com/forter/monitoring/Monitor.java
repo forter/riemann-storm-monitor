@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
@@ -26,8 +27,9 @@ public class Monitor implements EventSender {
     private final EventSender eventSender;
     private final Map<Object, Long> startTimestampPerId;
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
+    private final Map<String, String> customAttributes;
 
-    public Monitor() {
+    public Monitor(Map conf) {
         startTimestampPerId = Maps.newConcurrentMap();
         if (RiemannDiscovery.isAWS()) {
             eventSender = RiemannEventSender.getRiemannEventsSender();
@@ -35,9 +37,11 @@ public class Monitor implements EventSender {
             //fallback for local mode
             eventSender = new LoggerEventSender();
         }
+        customAttributes = extractCustomEventAttributes(conf);
     }
 
     public void send(RiemannEvent event) {
+        event.attributes(customAttributes);
         eventSender.send(event);
     }
 
@@ -80,5 +84,33 @@ public class Monitor implements EventSender {
                 logger.warn("Latency monitor doesn't recognize key {}. Swallowed exception {}", latencyId, er);
             }
         }
+    }
+
+    private Map<String,String> extractCustomEventAttributes(Map conf) {
+        if (conf.containsKey("topology.riemann.attributes")) {
+            Object attributes = conf.get("topology.riemann.attributes");
+            if (attributes instanceof String) {
+                String attributesString = (String) attributes;
+                return parseAttributesString(attributesString);
+            } else {
+                logger.warn("Wrong type of custom attributes for riemann, supposed to be String but is {}", attributes.getClass());
+            }
+        }
+
+        return new HashMap<String, String>();
+    }
+
+    private Map<String,String> parseAttributesString(String attributesString) {
+        Map<String, String> attributesMap = new HashMap<String, String>();
+
+        for (String attribute : attributesString.split(",")) {
+            String[] keyValue = attribute.split("=");
+            if (keyValue.length != 2) {
+                logger.warn("Bad format of custom attribute - {}", keyValue);
+                continue;
+            }
+            attributesMap.put(keyValue[0], keyValue[1]);
+        }
+        return attributesMap;
     }
 }
