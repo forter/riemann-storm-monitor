@@ -9,6 +9,7 @@ import backtype.storm.tuple.Tuple;
 import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.EventsAware;
 import com.forter.monitoring.events.ExceptionEvent;
+import com.forter.monitoring.events.RiemannEvent;
 import com.forter.monitoring.utils.PairKey;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
@@ -145,6 +146,9 @@ public class MonitoredBolt implements IRichBolt {
         stormIdName = Optional.of(idName);
     }
 
+    public void send(RiemannEvent event) {
+        monitor.send(event);
+    }
 }
 
 

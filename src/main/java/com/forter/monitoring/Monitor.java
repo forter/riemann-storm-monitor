@@ -1,4 +1,5 @@
 package com.forter.monitoring;
+import com.aphyr.riemann.client.RiemannClient;
 import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.LoggerEventSender;
 import com.forter.monitoring.events.ExceptionEvent;
@@ -6,6 +7,7 @@ import com.forter.monitoring.events.LatencyEvent;
 import com.forter.monitoring.events.RiemannEvent;
 import com.forter.monitoring.utils.RiemannDiscovery;
 import com.forter.monitoring.eventSender.RiemannEventSender;
+import com.google.common.base.Optional;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +21,7 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 This singleton class centralizes the storm-monitoring functions.
 The monitored bolts and spouts will use the functions in this class.
  */
-class Monitor implements EventSender {
+public class Monitor implements EventSender {
     private final EventSender eventSender;
     private final Map<Object, Long> startTimestampPerId;
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -112,5 +114,15 @@ class Monitor implements EventSender {
             attributesMap.put(keyValue[0], keyValue[1]);
         }
         return attributesMap;
+    }
+
+    /**
+     * @return riemann client if discovered on aws.
+     */
+    public Optional<RiemannEventSender> getRiemannEventSender() {
+        if (eventSender instanceof RiemannEventSender) {
+            return Optional.of((RiemannEventSender)eventSender);
+        }
+        return Optional.absent();
     }
 }
