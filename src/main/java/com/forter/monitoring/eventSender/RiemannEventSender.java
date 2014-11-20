@@ -72,8 +72,10 @@ public class RiemannEventSender implements EventSender {
             }
 
             eventDSL.send();
-            logger.debug("Event sent - {}", event);
 
+            if (logger.isDebugEnabled()) {
+                logger.debug("Event sent - {}", event);
+            }
         } catch (Throwable t) {
             logger.warn("Riemann error during event ("+ event.description+") send attempt: ", t);
         }
