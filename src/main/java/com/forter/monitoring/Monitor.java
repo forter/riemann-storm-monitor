@@ -1,19 +1,15 @@
 package com.forter.monitoring;
 import com.forter.monitoring.eventSender.EventSender;
-import com.forter.monitoring.eventSender.EventsAware;
 import com.forter.monitoring.eventSender.LoggerEventSender;
 import com.forter.monitoring.events.ExceptionEvent;
 import com.forter.monitoring.events.LatencyEvent;
 import com.forter.monitoring.events.RiemannEvent;
 import com.forter.monitoring.utils.RiemannDiscovery;
 import com.forter.monitoring.eventSender.RiemannEventSender;
-import com.google.common.base.Optional;
-import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -23,7 +19,7 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 This singleton class centralizes the storm-monitoring functions.
 The monitored bolts and spouts will use the functions in this class.
  */
-public class Monitor implements EventSender {
+class Monitor implements EventSender {
     private final EventSender eventSender;
     private final Map<Object, Long> startTimestampPerId;
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -31,8 +27,8 @@ public class Monitor implements EventSender {
 
     public Monitor(Map conf) {
         startTimestampPerId = Maps.newConcurrentMap();
-        if (RiemannDiscovery.isAWS()) {
-            eventSender = RiemannEventSender.getRiemannEventsSender();
+        if (RiemannDiscovery.getInstance().isAWS()) {
+            eventSender = RiemannEventSender.getInstance();
         } else {
             //fallback for local mode
             eventSender = new LoggerEventSender();
