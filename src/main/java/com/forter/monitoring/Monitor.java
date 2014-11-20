@@ -3,15 +3,14 @@ import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.LoggerEventSender;
 import com.forter.monitoring.events.ExceptionEvent;
 import com.forter.monitoring.events.LatencyEvent;
+import com.forter.monitoring.events.RiemannEvent;
 import com.forter.monitoring.utils.RiemannDiscovery;
 import com.forter.monitoring.eventSender.RiemannEventSender;
-import com.google.common.base.Optional;
-import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
@@ -20,45 +19,30 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 This singleton class centralizes the storm-monitoring functions.
 The monitored bolts and spouts will use the functions in this class.
  */
-public class Monitor {
-    private static volatile transient Monitor singleton;
-
+class Monitor implements EventSender {
     private final EventSender eventSender;
     private final Map<Object, Long> startTimestampPerId;
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
+    private final Map<String, String> customAttributes;
 
-
-    private Monitor() {
-        Optional<String> machineName = getMachineName();
+    public Monitor(Map conf) {
         startTimestampPerId = Maps.newConcurrentMap();
-        if (machineName.isPresent()) {
-            eventSender = new RiemannEventSender(machineName.get());
+        if (RiemannDiscovery.getInstance().isAWS()) {
+            eventSender = RiemannEventSender.getInstance();
         } else {
             //fallback for local mode
             eventSender = new LoggerEventSender();
         }
+        customAttributes = extractCustomEventAttributes(conf);
     }
 
-    public static Monitor getMonitor() {
-        if(singleton == null) {
-            synchronized (Monitor.class) {
-                if(singleton == null)
-                    singleton = new Monitor();
-            }
-        }
-        return singleton;
+    public Monitor() {
+        this(new HashMap());
     }
 
-    public EventSender getEventSender() {
-        return eventSender;
-    }
-
-    private Optional<String> getMachineName() {
-       try {
-            return new RiemannDiscovery().retrieveName();
-        } catch (IOException e) {
-            throw Throwables.propagate(e);
-        }
+    public void send(RiemannEvent event) {
+        event.attributes(customAttributes);
+        eventSender.send(event);
     }
 
     public void startLatency(Object id) {
@@ -84,21 +68,49 @@ public class Monitor {
             if(stormIdName != null && stormIdValue != null) {
                 event.attribute(stormIdName, stormIdValue);
             }
-            eventSender.send(event);
+            send(event);
 
             startTimestampPerId.remove(latencyId);
             if (logger.isDebugEnabled()) {
                 logger.debug("Monitored latency {} for key {}", elapsed, latencyId);
             }
         } else {
-            eventSender.send(new ExceptionEvent("Latency monitor doesn't recognize key.").service(service));
+            send(new ExceptionEvent("Latency monitor doesn't recognize key.").service(service));
             if (er == null) {
                 logger.warn("Latency monitor doesn't recognize key {}.", latencyId);
             }
             else {
-                eventSender.send(new ExceptionEvent(er).service(service));
+                send(new ExceptionEvent(er).service(service));
                 logger.warn("Latency monitor doesn't recognize key {}. Swallowed exception {}", latencyId, er);
             }
         }
+    }
+
+    private Map<String,String> extractCustomEventAttributes(Map conf) {
+        if (conf.containsKey("topology.riemann.attributes")) {
+            Object attributes = conf.get("topology.riemann.attributes");
+            if (attributes instanceof String) {
+                String attributesString = (String) attributes;
+                return parseAttributesString(attributesString);
+            } else {
+                logger.warn("Wrong type of custom attributes for riemann, supposed to be String but is {}", attributes.getClass());
+            }
+        }
+
+        return new HashMap<String, String>();
+    }
+
+    private Map<String,String> parseAttributesString(String attributesString) {
+        Map<String, String> attributesMap = new HashMap<String, String>();
+
+        for (String attribute : attributesString.split(",")) {
+            String[] keyValue = attribute.split("=");
+            if (keyValue.length != 2) {
+                logger.warn("Bad format of custom attribute - {}", keyValue);
+                continue;
+            }
+            attributesMap.put(keyValue[0], keyValue[1]);
+        }
+        return attributesMap;
     }
 }

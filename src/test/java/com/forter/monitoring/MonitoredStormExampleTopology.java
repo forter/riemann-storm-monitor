@@ -90,6 +90,7 @@ public class MonitoredStormExampleTopology {
         Config conf = new Config();
         conf.setDebug(false);
         conf.setMaxSpoutPending(1);
+        conf.put("topology.riemann.attributes", "foo=1,bar=baz");
         LocalCluster cluster = new LocalCluster();
         cluster.submitTopology("test", conf, builder.createTopology());
 

@@ -26,7 +26,7 @@ public class RiemannConnection {
     public void connect() {
         if (client == null) {
             try {
-                riemannIP = getRiemannIP(new RiemannDiscovery());
+                riemannIP = getRiemannIP();
                 client = RiemannClient.tcp(riemannIP, riemannPort);
             }
             catch (IOException e) {
@@ -42,9 +42,9 @@ public class RiemannConnection {
         }
     }
 
-    private String getRiemannIP(RiemannDiscovery discover) throws IOException {
+    private String getRiemannIP() throws IOException {
         String machinePrefix = (machineName.startsWith("prod") ? "prod" : "develop");
-        return (Iterables.get(discover.describeInstancesByName(machinePrefix + "-riemann-instance"), 0)).getPrivateIpAddress();
+        return (Iterables.get(RiemannDiscovery.getInstance().describeInstancesByName(machinePrefix + "-riemann-instance"), 0)).getPrivateIpAddress();
     }
 
     public RiemannClient getClient() {

@@ -27,15 +27,22 @@ It is possible to use it to get the IP of a machine, based on its name / id.
 public class RiemannDiscovery {
     private final AmazonEC2 ec2Client;
 
-    public RiemannDiscovery() {
+    private RiemannDiscovery() {
         ec2Client = new AmazonEC2Client(new AWSCredentialsProviderChain(new InstanceProfileCredentialsProvider(), new EnvironmentVariableCredentialsProvider()));
     }
 
-    public static String retrieveInstanceId() throws IOException {
+    private static class SingletonHolder {
+        private static final RiemannDiscovery INSTANCE = new RiemannDiscovery();
+    }
+
+    public static RiemannDiscovery getInstance() {
+        return SingletonHolder.INSTANCE;
+    }
+    public String retrieveInstanceId() throws IOException {
         return retrieveMetadata("instance-id");
     }
 
-    public static String retrieveMetadata(String metadata) throws IOException {
+    public String retrieveMetadata(String metadata) throws IOException {
         String result = "";
         String inputLine;
         URL url = new URL("http://instance-data/latest/meta-data/" + metadata);

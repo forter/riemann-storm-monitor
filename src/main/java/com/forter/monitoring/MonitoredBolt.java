@@ -28,6 +28,7 @@ public class MonitoredBolt implements IRichBolt {
     private transient Logger logger;
     private String boltService;
     protected Optional<String> stormIdName;
+    private Monitor monitor;
 
     private class MonitoredOutputCollector extends OutputCollector {
 
@@ -49,9 +50,9 @@ public class MonitoredBolt implements IRichBolt {
         public void ack(Tuple input) {
             if(stormIdName.isPresent() && input.contains(stormIdName.get())) {
                 String stormId = input.getStringByField(stormIdName.get());
-                Monitor.getMonitor().endLatency(pair(input), boltService, stormIdName.get(), stormId, null /*error = null*/);
+                monitor.endLatency(pair(input), boltService, stormIdName.get(), stormId, null /*error = null*/);
             } else {
-                Monitor.getMonitor().endLatency(pair(input), boltService, /*error = */ null);
+                monitor.endLatency(pair(input), boltService, /*error = */ null);
             }
             super.ack(input);
         }
@@ -60,9 +61,9 @@ public class MonitoredBolt implements IRichBolt {
         public void fail(Tuple input) {
             if(stormIdName.isPresent() && input.contains(stormIdName.get())) {
                 String stormId = input.getStringByField(stormIdName.get());
-                Monitor.getMonitor().endLatency(pair(input), boltService, stormIdName.get(), stormId, new Throwable(boltService + " failed to process tuple") );
+                monitor.endLatency(pair(input), boltService, stormIdName.get(), stormId, new Throwable(boltService + " failed to process tuple") );
             } else {
-                Monitor.getMonitor().endLatency(pair(input), boltService, new Throwable(boltService + " failed to process tuple"));
+                monitor.endLatency(pair(input), boltService, new Throwable(boltService + " failed to process tuple"));
             }
 
             super.fail(input);
@@ -70,7 +71,7 @@ public class MonitoredBolt implements IRichBolt {
 
         @Override
         public void reportError(Throwable error) {
-            Monitor.getMonitor().getEventSender().send(new ExceptionEvent(error).service(boltService));
+            monitor.send(new ExceptionEvent(error).service(boltService));
             super.reportError(error);
         }
     }
@@ -79,9 +80,9 @@ public class MonitoredBolt implements IRichBolt {
         this.delegate = delegate;
     }
 
-    private static void injectEventSender(IRichBolt delegate) {
+    private static void injectEventSender(IRichBolt delegate, EventSender eventSender) {
         if(delegate instanceof EventsAware) {
-            ((EventsAware) delegate).setEventSender(Monitor.getMonitor().getEventSender());
+            ((EventsAware) delegate).setEventSender(eventSender);
         }
     }
 
@@ -90,7 +91,8 @@ public class MonitoredBolt implements IRichBolt {
         try {
             boltService = context.getThisComponentId();
             logger = LoggerFactory.getLogger(boltService);
-            injectEventSender(delegate);
+            monitor = new Monitor(conf);
+            injectEventSender(delegate, monitor);
             delegate.prepare(conf, context, new MonitoredOutputCollector(collector));
         } catch(Throwable t) {
             logger.warn("Error during bolt prepare : ", t);
@@ -101,7 +103,7 @@ public class MonitoredBolt implements IRichBolt {
     @Override
     public void execute(Tuple tuple) {
         logger.trace("Entered execute with tuple : ", tuple);
-        Monitor.getMonitor().startLatency(pair(tuple));
+        monitor.startLatency(pair(tuple));
         try {
             delegate.execute(tuple);
             logger.trace("Finished execution with tuple : ", tuple);
@@ -123,10 +125,6 @@ public class MonitoredBolt implements IRichBolt {
             logger.info("Error during bolt cleanup : ", t);
             throw Throwables.propagate(t);
         }
-    }
-
-    public EventSender getEventSender() {
-        return Monitor.getMonitor().getEventSender();
     }
 
     @Override
