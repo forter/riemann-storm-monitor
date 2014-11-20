@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 
 public class RiemannEventSender implements EventSender {
-    private static volatile transient RiemannEventSender singleton;
     private final RiemannConnection connection;
     private final String machineName;
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -21,15 +20,12 @@ public class RiemannEventSender implements EventSender {
     // A temporary field for the v0.8.6.1 fix. will be removed later.
     private final float DEFAULT_TTL_SEC = 5f;
 
-    public static RiemannEventSender getRiemannEventsSender() {
-        if(singleton == null) {
-            synchronized (RiemannEventSender.class) {
-                if(singleton == null) {
-                    singleton = new RiemannEventSender();
-                }
-            }
-        }
-        return singleton;
+    private static class SingletonHolder {
+        private static final RiemannEventSender INSTANCE = new RiemannEventSender();
+    }
+
+    public static RiemannEventSender getInstance() {
+        return SingletonHolder.INSTANCE;
     }
 
     private RiemannEventSender() {
@@ -40,7 +36,7 @@ public class RiemannEventSender implements EventSender {
 
     private String retrieveMachineName() {
         try {
-            Optional<String> machineName = new RiemannDiscovery().retrieveName();
+            Optional<String> machineName = RiemannDiscovery.getInstance().retrieveName();
             if (!machineName.isPresent()) {
                 throw new Error("No machine name!");
             }
@@ -74,8 +70,12 @@ public class RiemannEventSender implements EventSender {
             if(event.host != null) {
                 eventDSL.host(event.host);
             }
+
             eventDSL.send();
 
+            if (logger.isDebugEnabled()) {
+                logger.debug("Event sent - {}", event);
+            }
         } catch (Throwable t) {
             logger.warn("Riemann error during event ("+ event.description+") send attempt: ", t);
         }
