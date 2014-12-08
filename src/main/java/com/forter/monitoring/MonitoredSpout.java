@@ -7,6 +7,7 @@ import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.EventsAware;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
+import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +41,7 @@ public class MonitoredSpout implements IRichSpout {
     public void open(Map conf, final TopologyContext context, SpoutOutputCollector collector) {
         logger = LoggerFactory.getLogger(delegate.getClass());
         spoutService = context.getThisComponentId();
-        monitor = new Monitor(conf);
+        monitor = new Monitor(conf, Optional.<String>absent());
         injectEventSender(delegate, monitor);
         try {
             delegate.open(conf, context, new SpoutOutputCollector(collector) {
@@ -81,9 +82,12 @@ public class MonitoredSpout implements IRichSpout {
     @Override
     public void ack(Object id) {
         if(idName.isPresent()) {
-            monitor.endLatency(id, spoutService, idName.get(), String.valueOf(id), null /*error = null*/);
+            Map<String, String> attributes = Maps.newHashMap();
+            attributes.put(idName.get(), String.valueOf(id));
+
+            monitor.endSpoutLatency(id, spoutService, attributes, null);
         } else {
-            monitor.endLatency(id, spoutService, null /*error = null*/);
+            monitor.endSpoutLatency(id, spoutService, null, null);
         }
 
         try {
@@ -97,9 +101,12 @@ public class MonitoredSpout implements IRichSpout {
     @Override
     public void fail(Object id) {
         if(idName.isPresent()) {
-            monitor.endLatency(id, spoutService, idName.get(), String.valueOf(id), new Throwable("Storm failed."));
+            Map<String, String> attributes = Maps.newHashMap();
+            attributes.put(idName.get(), String.valueOf(id));
+
+            monitor.endSpoutLatency(id, spoutService, attributes, new Throwable("Storm failed."));
         } else {
-            monitor.endLatency(id, spoutService, new Throwable("Storm failed."));
+            monitor.endLatency(id, spoutService, null, new Throwable("Storm failed."));
         }
         try {
             delegate.fail(id);

@@ -1,5 +1,6 @@
 package com.forter.monitoring.events;
 
+import backtype.storm.tuple.Tuple;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -18,6 +19,7 @@ public class RiemannEvent {
     public Float ttl;
     public List<String> tags;
     public Map<String, String> customAttributes;
+    public Tuple tuple;
 
     /**
      * Initialize a new RiemannEvent
@@ -70,6 +72,13 @@ public class RiemannEvent {
     public RiemannEvent tags(List<String> tags) {
         if(tags != null) {
             this.tags.addAll(tags);
+        }
+        return this;
+    }
+
+    public RiemannEvent tuple(Tuple tuple) {
+        if(tuple != null) {
+            this.tuple = tuple;
         }
         return this;
     }

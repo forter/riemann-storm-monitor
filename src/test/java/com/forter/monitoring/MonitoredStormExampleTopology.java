@@ -10,6 +10,8 @@ import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.EventsAware;
 import com.forter.monitoring.events.ThroughputEvent;
@@ -22,6 +24,7 @@ This class is a testing class.
 It defined two inner classes - a mock bolt and a mock spout. this classes are the bases for the monitoring wrappers.
  */
 public class MonitoredStormExampleTopology {
+    private static ObjectMapper mapper = new ObjectMapper();
 
     public static class MockSpout extends BaseRichSpout implements EventsAware {
         private SpoutOutputCollector collector;
@@ -43,7 +46,11 @@ public class MonitoredStormExampleTopology {
         @Override
         public void nextTuple() {
             es.send(new ThroughputEvent().service("nextTuple"));
-            collector.emit(new Values("", String.valueOf(lastId)), lastId++);
+            ObjectNode metadata = mapper.createObjectNode();
+
+            metadata.put("jobId", String.valueOf(lastId));
+
+            collector.emit(new Values("", String.valueOf(lastId), metadata), lastId++);
         }
 
         @Override
@@ -56,14 +63,14 @@ public class MonitoredStormExampleTopology {
 
         @Override
         public void declareOutputFields(OutputFieldsDeclarer declarer) {
-            declarer.declare(new Fields("word", "jobId"));
+            declarer.declare(new Fields("word", "jobId", "metadata"));
         }
     }
 
     public static class MockBolt extends BaseBasicBolt implements IBasicBolt {
         @Override
         public void declareOutputFields(OutputFieldsDeclarer declarer) {
-            declarer.declare(new Fields("word", "jobId"));
+            declarer.declare(new Fields("word", "jobId", "metadata"));
         }
 
         @Override
@@ -82,7 +89,7 @@ public class MonitoredStormExampleTopology {
         MonitoredSpout mSpout = new MonitoredSpout(new MockSpout());
         mSpout.setIdName("jobId");
         MonitoredBolt mBolt = new MonitoredBolt(new BasicBoltExecutor(new MockBolt()));
-        mBolt.setIdName("jobId");
+        mBolt.setMetadataName("metadata");
 
         builder.setSpout("testMockSpout", mSpout, 1);
         builder.setBolt("testMockBolt", mBolt, 1).localOrShuffleGrouping("testMockSpout");
