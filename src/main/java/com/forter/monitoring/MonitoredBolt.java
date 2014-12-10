@@ -10,7 +10,6 @@ import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.EventsAware;
 import com.forter.monitoring.events.ExceptionEvent;
 import com.forter.monitoring.events.RiemannEvent;
-import com.forter.monitoring.utils.PairKey;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import org.slf4j.Logger;
@@ -51,9 +50,9 @@ public class MonitoredBolt implements IRichBolt {
         public void ack(Tuple input) {
             if(stormIdName.isPresent() && input.contains(stormIdName.get())) {
                 String stormId = input.getStringByField(stormIdName.get());
-                monitor.endLatency(pair(input), boltService, stormIdName.get(), stormId, null /*error = null*/);
+                monitor.endLatency(input.getMessageId(), boltService, stormIdName.get(), stormId, null /*error = null*/);
             } else {
-                monitor.endLatency(pair(input), boltService, /*error = */ null);
+                monitor.endLatency(input.getMessageId(), boltService, /*error = */ null);
             }
             super.ack(input);
         }
@@ -62,9 +61,9 @@ public class MonitoredBolt implements IRichBolt {
         public void fail(Tuple input) {
             if(stormIdName.isPresent() && input.contains(stormIdName.get())) {
                 String stormId = input.getStringByField(stormIdName.get());
-                monitor.endLatency(pair(input), boltService, stormIdName.get(), stormId, new Throwable(boltService + " failed to process tuple") );
+                monitor.endLatency(input.getMessageId(), boltService, stormIdName.get(), stormId, new Throwable(boltService + " failed to process tuple") );
             } else {
-                monitor.endLatency(pair(input), boltService, new Throwable(boltService + " failed to process tuple"));
+                monitor.endLatency(input.getMessageId(), boltService, new Throwable(boltService + " failed to process tuple"));
             }
 
             super.fail(input);
@@ -104,7 +103,7 @@ public class MonitoredBolt implements IRichBolt {
     @Override
     public void execute(Tuple tuple) {
         logger.trace("Entered execute with tuple : ", tuple);
-        monitor.startLatency(pair(tuple));
+        monitor.startLatency(tuple.getMessageId());
         try {
             delegate.execute(tuple);
             logger.trace("Finished execution with tuple : ", tuple);
@@ -112,10 +111,6 @@ public class MonitoredBolt implements IRichBolt {
             logger.info("Error during bolt execute : ", t);
             throw Throwables.propagate(t);
         }
-    }
-
-    private PairKey pair(Tuple tuple) {
-        return new PairKey(this, tuple);
     }
 
     @Override
