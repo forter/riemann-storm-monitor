@@ -3,14 +3,14 @@ package com.forter.monitoring.utils;
 import com.google.common.base.Preconditions;
 
 public class PairKey {
-    private Object obj1;
-    private Object obj2;
+    private int obj1;
+    private int obj2;
 
     public PairKey(Object obj1, Object obj2) {
         Preconditions.checkNotNull(obj1, "obj1 is null");
         Preconditions.checkNotNull(obj2, "obj2 is null");
-        this.obj1 = obj1;
-        this.obj2 = obj2;
+        this.obj1 = System.identityHashCode(obj1);
+        this.obj2 = System.identityHashCode(obj2);
     }
 
     @Override
@@ -25,6 +25,6 @@ public class PairKey {
 
     @Override
     public int hashCode() {
-        return 31 * obj1.hashCode() + obj2.hashCode();
+        return 31 * obj1 + obj2;
     }
 }
