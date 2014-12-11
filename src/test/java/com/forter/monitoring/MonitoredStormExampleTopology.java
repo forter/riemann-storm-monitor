@@ -89,7 +89,6 @@ public class MonitoredStormExampleTopology {
         MonitoredSpout mSpout = new MonitoredSpout(new MockSpout());
         mSpout.setIdName("jobId");
         MonitoredBolt mBolt = new MonitoredBolt(new BasicBoltExecutor(new MockBolt()));
-        mBolt.setMetadataName("metadata");
 
         builder.setSpout("testMockSpout", mSpout, 1);
         builder.setBolt("testMockBolt", mBolt, 1).localOrShuffleGrouping("testMockSpout");

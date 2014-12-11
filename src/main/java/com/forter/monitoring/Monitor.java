@@ -29,10 +29,9 @@ public class Monitor implements EventSender {
     private final Map<Object, Long> startTimestampPerId;
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final Map<String, String> customAttributes;
-    private final Optional<String> metadataFieldName;
 
-    public Monitor(Map conf, Optional<String> metadataFieldName) {
-        this.metadataFieldName = metadataFieldName;
+    public Monitor(Map conf) {
+
         startTimestampPerId = Maps.newConcurrentMap();
         if (RiemannDiscovery.getInstance().isAWS()) {
             eventSender = RiemannEventSender.getInstance();
@@ -44,32 +43,25 @@ public class Monitor implements EventSender {
     }
 
     public Monitor() {
-        this(new HashMap(), Optional.<String>absent());
+        this(new HashMap());
     }
 
     public void send(RiemannEvent event) {
         event.attributes(customAttributes);
 
-        if (event.tuple != null && metadataFieldName.isPresent() && event.tuple.contains(metadataFieldName.get())) {
-            ObjectNode node = (ObjectNode) event.tuple.getValueByField(metadataFieldName.get());
-            event.attributes(extractAttributesFromMetadataObject(node));
+        if (event.tuple != null) {
+            HashMap<String, String> attributes = Maps.newHashMap();
+
+            for (String field : event.tuple.getFields()) {
+                if (field.startsWith("_")) {
+                    attributes.put(field.substring(1), String.valueOf(event.tuple.getValueByField(field)));
+                }
+            }
+
+            event.attributes(attributes);
         }
 
         eventSender.send(event);
-    }
-
-    private Map<String, String> extractAttributesFromMetadataObject(ObjectNode node) {
-        Map<String, String> attributes = Maps.newHashMap();
-
-        if (node != null) {
-            Iterator<Map.Entry<String, JsonNode>> iterator = node.fields();
-            while (iterator.hasNext()) {
-                Map.Entry<String, JsonNode> entry = iterator.next();
-                attributes.put(entry.getKey(), entry.getValue().textValue());
-            }
-        }
-
-        return attributes;
     }
 
     public void startLatency(Object id) {

@@ -30,7 +30,6 @@ public class MonitoredBolt implements IRichBolt {
     private transient Logger logger;
     private String boltService;
     private Monitor monitor;
-    protected Optional<String> metadataFieldName;
 
     private class MonitoredOutputCollector extends OutputCollector {
 
@@ -82,7 +81,7 @@ public class MonitoredBolt implements IRichBolt {
         try {
             boltService = context.getThisComponentId();
             logger = LoggerFactory.getLogger(boltService);
-            monitor = new Monitor(conf, metadataFieldName);
+            monitor = new Monitor(conf);
             injectEventSender(delegate, monitor);
             delegate.prepare(conf, context, new MonitoredOutputCollector(collector));
         } catch(Throwable t) {
@@ -130,15 +129,6 @@ public class MonitoredBolt implements IRichBolt {
 
     public void send(RiemannEvent event) {
         monitor.send(event);
-    }
-
-    /**
-     * Sets the metadata field name in the tuple. The metadata contains various data that needs to be
-     * reported to riemann on a per event basis.
-     * @param metadataFieldName the field name to be set
-     */
-    public void setMetadataName(String metadataFieldName) {
-        this.metadataFieldName = Optional.of(metadataFieldName);
     }
 }
 
