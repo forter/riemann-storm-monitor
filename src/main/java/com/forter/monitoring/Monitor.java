@@ -84,7 +84,9 @@ public class Monitor implements EventSender {
 
     public void endLatency(Object latencyId, String service, Tuple tuple, Map<String, String> attributes, Throwable er) {
         if(startTimestampPerId.containsKey(latencyId)) {
-            long elapsed = NANOSECONDS.toMillis(System.nanoTime() - startTimestampPerId.get(latencyId));
+            Long startTime = startTimestampPerId.remove(latencyId);
+
+            long elapsed = NANOSECONDS.toMillis(System.nanoTime() - startTime);
 
             LatencyEvent event = new LatencyEvent(elapsed).service(service).error(er);
 
@@ -96,11 +98,12 @@ public class Monitor implements EventSender {
                 event.attributes(attributes);
             }
 
+            event.attribute("startTime", Long.toString(startTime));
+
             send(event);
 
             eventSender.send(event);
 
-            startTimestampPerId.remove(latencyId);
             if (logger.isDebugEnabled()) {
                 logger.debug("Monitored latency {} for key {}", elapsed, latencyId);
             }
