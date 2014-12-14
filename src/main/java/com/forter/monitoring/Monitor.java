@@ -102,8 +102,6 @@ public class Monitor implements EventSender {
 
             send(event);
 
-            eventSender.send(event);
-
             if (logger.isDebugEnabled()) {
                 logger.debug("Monitored latency {} for key {}", elapsed, latencyId);
             }
