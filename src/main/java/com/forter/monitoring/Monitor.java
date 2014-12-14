@@ -98,8 +98,6 @@ public class Monitor implements EventSender {
 
             send(event);
 
-            eventSender.send(event);
-
             startTimestampPerId.remove(latencyId);
             if (logger.isDebugEnabled()) {
                 logger.debug("Monitored latency {} for key {}", elapsed, latencyId);
