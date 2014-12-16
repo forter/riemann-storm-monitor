@@ -78,8 +78,8 @@ public class Monitor implements EventSender {
         Object maxConcurrencyConf = conf.get("topology.monitoring.latencies.map.maxConcurrency");
 
         maxSize = (maxSizeConf == null ? MAX_SIZE_DEFAULT : (long) maxConcurrencyConf);
-        maxSize = (maxTimeConf == null ? MAX_TIME_DEFAULT : (long) maxConcurrencyConf);
-        maxSize = (maxConcurrencyConf == null ? MAX_CONCURRENCY_DEFAULT: (long) maxConcurrencyConf);
+        maxTime = (maxTimeConf == null ? MAX_TIME_DEFAULT : (long) maxConcurrencyConf);
+        maxConcurrency = (maxConcurrencyConf == null ? MAX_CONCURRENCY_DEFAULT: Ints.checkedCast((long)maxConcurrencyConf));
     }
 
     public Monitor() {
