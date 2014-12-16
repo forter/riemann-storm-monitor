@@ -15,7 +15,8 @@ builder.setSpout("testMockSpout",new MonitoredSpout(new MockSpout()), 1);
 builder.setBolt("testMockBolt", new MonitoredBolt(new MockBolt()), 1).localOrShuffleGrouping("testMockSpout");
 ```
 
-You should pass configuration for latency map. Set the required values when initializing the topology:
+You should pass configuration for latency map. Set the required values when initializing the topology (if not passed,
+default values will be used):
  conf.put("topology.monitoring.latencies.map.maxSize", 500);
  conf.put("topology.monitoring.latencies.map.maxTimeSeconds", 120);
  conf.put("topology.monitoring.latencies.map.maxConcurrency", 4);

@@ -33,6 +33,9 @@ public class Monitor implements EventSender {
     private int maxConcurrency;
     private long maxSize;
     private long maxTime;
+    private static final int MAX_CONCURRENCY_DEFAULT = 2;
+    private static final long MAX_SIZE_DEFAULT = 1000;
+    private static final long MAX_TIME_DEFAULT = 60;
 
     public Monitor(Map conf, final String boltService) {
         startTimestampPerId = createCache(conf, boltService);
@@ -70,18 +73,13 @@ public class Monitor implements EventSender {
     }
 
     private void initCacheConfig(Map conf) {
-        Preconditions.checkNotNull(conf.get("topology.monitoring.latencies.map.maxSize"),
-                "Add to topology configuration the value of topology.monitoring.latencies.map.maxSize which indicates " +
-                        "the maximum number of concurrent executing tuples per bolt.");
-        Preconditions.checkNotNull(conf.get("topology.monitoring.latencies.map.maxTimeSeconds"),
-                "Add to topology configuration the value of topology.monitoring.latencies.map.maxTimeSeconds which " +
-                        "indicates the maximum time a latency object is allowed to stay in the map before it expires.");
-        Preconditions.checkNotNull(conf.get("topology.monitoring.latencies.map.maxConcurrency"),
-                "Add to topology configuration the value of topology.monitoring.latencies.map.maxConcurrency which " +
-                        "indicates the maximum number of threads handling execute and collector emit.");
-        maxSize = (long) conf.get("topology.monitoring.latencies.map.maxSize");
-        maxTime = (long) conf.get("topology.monitoring.latencies.map.maxTimeSeconds");
-        maxConcurrency = Ints.checkedCast((long) conf.get("topology.monitoring.latencies.map.maxConcurrency"));
+        Object maxSizeConf = conf.get("topology.monitoring.latencies.map.maxSize");
+        Object maxTimeConf = conf.get("topology.monitoring.latencies.map.maxTimeSeconds");
+        Object maxConcurrencyConf = conf.get("topology.monitoring.latencies.map.maxConcurrency");
+
+        maxSize = (maxSizeConf == null ? MAX_SIZE_DEFAULT : (long) maxConcurrencyConf);
+        maxSize = (maxTimeConf == null ? MAX_TIME_DEFAULT : (long) maxConcurrencyConf);
+        maxSize = (maxConcurrencyConf == null ? MAX_CONCURRENCY_DEFAULT: (long) maxConcurrencyConf);
     }
 
     public Monitor() {
