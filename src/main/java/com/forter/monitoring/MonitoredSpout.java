@@ -41,7 +41,7 @@ public class MonitoredSpout implements IRichSpout {
     public void open(Map conf, final TopologyContext context, SpoutOutputCollector collector) {
         logger = LoggerFactory.getLogger(delegate.getClass());
         spoutService = context.getThisComponentId();
-        monitor = new Monitor(conf);
+        monitor = new Monitor(conf, spoutService);
         injectEventSender(delegate, monitor);
         try {
             delegate.open(conf, context, new SpoutOutputCollector(collector) {

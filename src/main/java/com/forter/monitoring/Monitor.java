@@ -10,6 +10,7 @@ import com.forter.monitoring.events.LatencyEvent;
 import com.forter.monitoring.events.RiemannEvent;
 import com.forter.monitoring.utils.RiemannDiscovery;
 import com.google.common.base.Optional;
+import com.google.common.cache.*;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
@@ -26,13 +28,30 @@ The monitored bolts and spouts will use the functions in this class.
  */
 public class Monitor implements EventSender {
     private final EventSender eventSender;
-    private final Map<Object, Long> startTimestampPerId;
+    private final Cache<Object, Long> startTimestampPerId;
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final Map<String, String> customAttributes;
 
-    public Monitor(Map conf) {
-
-        startTimestampPerId = Maps.newConcurrentMap();
+    public Monitor(Map conf, final String boltService) {
+        startTimestampPerId = CacheBuilder.newBuilder()
+                .maximumSize(1000)
+                .expireAfterWrite(60, TimeUnit.MINUTES)
+                .concurrencyLevel(2)
+                .removalListener(new RemovalListener<Object, Long>() {
+                    // The on removal callback is not instantly called on removal, but I  hope it will be called
+                    // eventually. see:
+                    // http://stackoverflow.com/questions/21986551/guava-cachebuilder-doesnt-call-removal-listener
+                    @Override
+                    public void onRemoval(RemovalNotification<Object, Long> notification) {
+                        if (notification.getCause() != RemovalCause.EXPLICIT) {
+                            ExceptionEvent event = new ExceptionEvent("Latency object unexpectedly removed");
+                            event.attribute("removalCause", notification.getCause().name());
+                            event.service(boltService);
+                            send(event);
+                        }
+                    }
+                })
+                .build();
         if (RiemannDiscovery.getInstance().isAWS()) {
             eventSender = RiemannEventSender.getInstance();
         } else {
@@ -43,7 +62,7 @@ public class Monitor implements EventSender {
     }
 
     public Monitor() {
-        this(new HashMap());
+        this(new HashMap(), "");
     }
 
     public void send(RiemannEvent event) {
@@ -83,8 +102,9 @@ public class Monitor implements EventSender {
     }
 
     public void endLatency(Object latencyId, String service, Tuple tuple, Map<String, String> attributes, Throwable er) {
-        if(startTimestampPerId.containsKey(latencyId)) {
-            Long startTime = startTimestampPerId.remove(latencyId);
+        Long startTime = startTimestampPerId.getIfPresent(latencyId);
+        if(startTime != null) {
+            startTimestampPerId.invalidate(latencyId);
 
             long elapsed = NANOSECONDS.toMillis(System.nanoTime() - startTime);
 
