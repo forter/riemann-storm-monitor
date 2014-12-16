@@ -71,11 +71,14 @@ public class Monitor implements EventSender {
 
     private void initCacheConfig(Map conf) {
         Preconditions.checkNotNull(conf.get("topology.monitoring.latencies.map.maxSize"),
-                "expected configuration to contain maxSize for latency map.");
+                "Add to storm.yaml configuration the value of topology.monitoring.latencies.map.maxSize which indicates " +
+                        "the maximum number of concurrent executing tuples per bolt.");
         Preconditions.checkNotNull(conf.get("topology.monitoring.latencies.map.maxTimeSeconds"),
-                "expected configuration to contain maxTimeSeconds for latency map.");
+                "Add to storm.yaml configuration the value of topology.monitoring.latencies.map.maxTimeSeconds which " +
+                        "indicates the maximum time a latency object is allowed to stay in the map before it expires.");
         Preconditions.checkNotNull(conf.get("topology.monitoring.latencies.map.maxConcurrency"),
-                "expected configuration to contain maxConcurrency for latency map.");
+                "Add to storm.yaml configuration the value of topology.monitoring.latencies.map.maxConcurrency which " +
+                        "indicates the maximum number of threads handling execute and collector emit.");
         maxSize = (long) conf.get("topology.monitoring.latencies.map.maxSize");
         maxTime = (long) conf.get("topology.monitoring.latencies.map.maxTimeSeconds");
         maxConcurrency = Ints.checkedCast((long) conf.get("topology.monitoring.latencies.map.maxConcurrency"));
