@@ -1,7 +1,5 @@
 package com.forter.monitoring;
 import backtype.storm.tuple.Tuple;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.LoggerEventSender;
 import com.forter.monitoring.eventSender.RiemannEventSender;
@@ -10,13 +8,14 @@ import com.forter.monitoring.events.LatencyEvent;
 import com.forter.monitoring.events.RiemannEvent;
 import com.forter.monitoring.utils.RiemannDiscovery;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.cache.*;
 import com.google.common.collect.Maps;
+import com.google.common.primitives.Ints;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -31,12 +30,28 @@ public class Monitor implements EventSender {
     private final Cache<Object, Long> startTimestampPerId;
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final Map<String, String> customAttributes;
+    private int maxConcurrency;
+    private long maxSize;
+    private long maxTime;
 
     public Monitor(Map conf, final String boltService) {
-        startTimestampPerId = CacheBuilder.newBuilder()
-                .maximumSize(1000)
-                .expireAfterWrite(60, TimeUnit.MINUTES)
-                .concurrencyLevel(2)
+        startTimestampPerId = createCache(conf, boltService);
+
+        if (RiemannDiscovery.getInstance().isAWS()) {
+            eventSender = RiemannEventSender.getInstance();
+        } else {
+            //fallback for local mode
+            eventSender = new LoggerEventSender();
+        }
+        customAttributes = extractCustomEventAttributes(conf);
+    }
+
+    private Cache<Object, Long>  createCache(Map conf, final String boltService) {
+        initCacheConfig(conf);
+        return CacheBuilder.newBuilder()
+                .maximumSize(maxSize)
+                .expireAfterWrite(maxTime, TimeUnit.SECONDS)
+                .concurrencyLevel(maxConcurrency)
                 .removalListener(new RemovalListener<Object, Long>() {
                     // The on removal callback is not instantly called on removal, but I  hope it will be called
                     // eventually. see:
@@ -52,13 +67,18 @@ public class Monitor implements EventSender {
                     }
                 })
                 .build();
-        if (RiemannDiscovery.getInstance().isAWS()) {
-            eventSender = RiemannEventSender.getInstance();
-        } else {
-            //fallback for local mode
-            eventSender = new LoggerEventSender();
-        }
-        customAttributes = extractCustomEventAttributes(conf);
+    }
+
+    private void initCacheConfig(Map conf) {
+        Preconditions.checkNotNull(conf.get("topology.monitoring.latencies.map.maxSize"),
+                "expected configuration to contain maxSize for latency map.");
+        Preconditions.checkNotNull(conf.get("topology.monitoring.latencies.map.maxTimeSeconds"),
+                "expected configuration to contain maxTimeSeconds for latency map.");
+        Preconditions.checkNotNull(conf.get("topology.monitoring.latencies.map.maxConcurrency"),
+                "expected configuration to contain maxConcurrency for latency map.");
+        maxSize = (long) conf.get("topology.monitoring.latencies.map.maxSize");
+        maxTime = (long) conf.get("topology.monitoring.latencies.map.maxTimeSeconds");
+        maxConcurrency = Ints.checkedCast((long) conf.get("topology.monitoring.latencies.map.maxConcurrency"));
     }
 
     public Monitor() {
