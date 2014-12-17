@@ -64,8 +64,6 @@ public class Monitor implements EventSender {
                         if (notification.getCause() != RemovalCause.EXPLICIT) {
                             ExceptionEvent event = new ExceptionEvent("Latency object unexpectedly removed");
                             event.attribute("removalCause", notification.getCause().name());
-                            event.attribute("maxSize", Long.toString(maxSize));
-                            event.attribute("maxTimeSeconds", Long.toString(maxTime));
                             event.service(boltService);
                             send(event);
                         }
@@ -82,6 +80,9 @@ public class Monitor implements EventSender {
         maxSize = (maxSizeConf == null ? MAX_SIZE_DEFAULT : (long) maxSizeConf);
         maxTime = (maxTimeConf == null ? MAX_TIME_DEFAULT : (long) maxTimeConf);
         maxConcurrency = (maxConcurrencyConf == null ? MAX_CONCURRENCY_DEFAULT: Ints.checkedCast((long) maxConcurrencyConf));
+
+        logger.info("Initializing latencies map with parameters maxSize: {}, maxTimeSeconds: {}, maxConcurrency: {}",
+                maxSize, maxTime, maxConcurrency);
     }
 
     public Monitor() {
