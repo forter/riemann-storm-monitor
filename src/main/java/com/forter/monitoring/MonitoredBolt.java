@@ -81,7 +81,7 @@ public class MonitoredBolt implements IRichBolt {
         try {
             boltService = context.getThisComponentId();
             logger = LoggerFactory.getLogger(boltService);
-            monitor = new Monitor(conf);
+            monitor = new Monitor(conf, boltService);
             injectEventSender(delegate, monitor);
             delegate.prepare(conf, context, new MonitoredOutputCollector(collector));
         } catch(Throwable t) {

@@ -1,7 +1,5 @@
 package com.forter.monitoring;
 import backtype.storm.tuple.Tuple;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.LoggerEventSender;
 import com.forter.monitoring.eventSender.RiemannEventSender;
@@ -10,13 +8,16 @@ import com.forter.monitoring.events.LatencyEvent;
 import com.forter.monitoring.events.RiemannEvent;
 import com.forter.monitoring.utils.RiemannDiscovery;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.cache.*;
 import com.google.common.collect.Maps;
+import com.google.common.primitives.Ints;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
@@ -26,13 +27,19 @@ The monitored bolts and spouts will use the functions in this class.
  */
 public class Monitor implements EventSender {
     private final EventSender eventSender;
-    private final Map<Object, Long> startTimestampPerId;
+    private final Cache<Object, Long> startTimestampPerId;
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final Map<String, String> customAttributes;
+    private int maxConcurrency;
+    private long maxSize;
+    private long maxTime;
+    private static final int MAX_CONCURRENCY_DEFAULT = 2;
+    private static final long MAX_SIZE_DEFAULT = 1000;
+    private static final long MAX_TIME_DEFAULT = 60;
 
-    public Monitor(Map conf) {
+    public Monitor(Map conf, final String boltService) {
+        startTimestampPerId = createCache(conf, boltService);
 
-        startTimestampPerId = Maps.newConcurrentMap();
         if (RiemannDiscovery.getInstance().isAWS()) {
             eventSender = RiemannEventSender.getInstance();
         } else {
@@ -42,8 +49,41 @@ public class Monitor implements EventSender {
         customAttributes = extractCustomEventAttributes(conf);
     }
 
+    private Cache<Object, Long>  createCache(Map conf, final String boltService) {
+        initCacheConfig(conf);
+        return CacheBuilder.newBuilder()
+                .maximumSize(maxSize)
+                .expireAfterWrite(maxTime, TimeUnit.SECONDS)
+                .concurrencyLevel(maxConcurrency)
+                .removalListener(new RemovalListener<Object, Long>() {
+                    // The on removal callback is not instantly called on removal, but I  hope it will be called
+                    // eventually. see:
+                    // http://stackoverflow.com/questions/21986551/guava-cachebuilder-doesnt-call-removal-listener
+                    @Override
+                    public void onRemoval(RemovalNotification<Object, Long> notification) {
+                        if (notification.getCause() != RemovalCause.EXPLICIT) {
+                            ExceptionEvent event = new ExceptionEvent("Latency object unexpectedly removed");
+                            event.attribute("removalCause", notification.getCause().name());
+                            event.service(boltService);
+                            send(event);
+                        }
+                    }
+                })
+                .build();
+    }
+
+    private void initCacheConfig(Map conf) {
+        Object maxSizeConf = conf.get("topology.monitoring.latencies.map.maxSize");
+        Object maxTimeConf = conf.get("topology.monitoring.latencies.map.maxTimeSeconds");
+        Object maxConcurrencyConf = conf.get("topology.monitoring.latencies.map.maxConcurrency");
+
+        maxSize = (maxSizeConf == null ? MAX_SIZE_DEFAULT : (long) maxConcurrencyConf);
+        maxTime = (maxTimeConf == null ? MAX_TIME_DEFAULT : (long) maxConcurrencyConf);
+        maxConcurrency = (maxConcurrencyConf == null ? MAX_CONCURRENCY_DEFAULT: Ints.checkedCast((long)maxConcurrencyConf));
+    }
+
     public Monitor() {
-        this(new HashMap());
+        this(new HashMap(), "");
     }
 
     public void send(RiemannEvent event) {
@@ -83,8 +123,9 @@ public class Monitor implements EventSender {
     }
 
     public void endLatency(Object latencyId, String service, Tuple tuple, Map<String, String> attributes, Throwable er) {
-        if(startTimestampPerId.containsKey(latencyId)) {
-            Long startTime = startTimestampPerId.remove(latencyId);
+        Long startTime = startTimestampPerId.getIfPresent(latencyId);
+        if(startTime != null) {
+            startTimestampPerId.invalidate(latencyId);
 
             long elapsed = NANOSECONDS.toMillis(System.nanoTime() - startTime);
 
