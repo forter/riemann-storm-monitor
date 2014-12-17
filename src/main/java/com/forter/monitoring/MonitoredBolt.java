@@ -49,12 +49,18 @@ public class MonitoredBolt implements IRichBolt {
 
         @Override
         public void ack(Tuple input) {
+            if (boltService == "elastic-query-join") {
+                logger.info("Elastic query join: ack for tuple {}", input.hashCode());
+            }
             monitor.endLatency(pair(input), boltService, input, null);
             super.ack(input);
         }
 
         @Override
         public void fail(Tuple input) {
+            if (boltService == "elastic-query-join") {
+                logger.info("Elastic query join: fail for tuple {}", input.hashCode());
+            }
             monitor.endLatency(pair(input), boltService, input, new Throwable(boltService + " failed to process tuple"));
             super.fail(input);
         }
@@ -93,6 +99,9 @@ public class MonitoredBolt implements IRichBolt {
     @Override
     public void execute(Tuple tuple) {
         logger.trace("Entered execute with tuple : ", tuple);
+        if (boltService == "elastic-query-join") {
+            logger.info("Elastic query join: start handling tuple {}", tuple.hashCode());
+        }
         monitor.startLatency(pair(tuple));
         try {
             delegate.execute(tuple);
