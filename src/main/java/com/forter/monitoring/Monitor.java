@@ -6,6 +6,7 @@ import com.forter.monitoring.eventSender.RiemannEventSender;
 import com.forter.monitoring.events.ExceptionEvent;
 import com.forter.monitoring.events.LatencyEvent;
 import com.forter.monitoring.events.RiemannEvent;
+import com.forter.monitoring.utils.PairKey;
 import com.forter.monitoring.utils.RiemannDiscovery;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -68,6 +69,8 @@ public class Monitor implements EventSender {
                             event.attribute("maxTimeSeconds", Long.toString(maxTime));
                             event.service(boltService);
                             send(event);
+                            Tuple tuple = (Tuple) ((PairKey) notification.getKey()).getObj2();
+                            logger.warn("Tuple {} removed from map for reason {}", tuple.toString(), notification.getCause());
                         }
                     }
                 })
