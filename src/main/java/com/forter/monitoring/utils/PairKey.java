@@ -6,6 +6,14 @@ public class PairKey {
     private Object obj1;
     private Object obj2;
 
+    public Object getObj1() {
+        return obj1;
+    }
+
+    public Object getObj2() {
+        return obj2;
+    }
+
     public PairKey(Object obj1, Object obj2) {
         Preconditions.checkNotNull(obj1, "obj1 is null");
         Preconditions.checkNotNull(obj2, "obj2 is null");
@@ -27,4 +35,6 @@ public class PairKey {
     public int hashCode() {
         return 31 * obj1.hashCode() + obj2.hashCode();
     }
+
+
 }
