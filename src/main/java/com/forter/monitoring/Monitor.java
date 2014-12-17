@@ -64,6 +64,8 @@ public class Monitor implements EventSender {
                         if (notification.getCause() != RemovalCause.EXPLICIT) {
                             ExceptionEvent event = new ExceptionEvent("Latency object unexpectedly removed");
                             event.attribute("removalCause", notification.getCause().name());
+                            event.attribute("maxSize", Long.toString(maxSize));
+                            event.attribute("maxTimeSeconds", Long.toString(maxTime));
                             event.service(boltService);
                             send(event);
                         }
