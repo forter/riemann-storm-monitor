@@ -70,7 +70,7 @@ public class Monitor implements EventSender {
                             event.service(boltService);
                             send(event);
                             Tuple tuple = (Tuple) ((PairKey) notification.getKey()).getObj2();
-                            logger.warn("Tuple {} removed from map for reason {}", tuple.toString(), notification.getCause());
+                            logger.warn("Tuple {} removed from map for reason {}", tuple.hashCode(), notification.getCause());
                         }
                     }
                 })
