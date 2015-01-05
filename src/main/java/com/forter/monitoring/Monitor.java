@@ -130,9 +130,11 @@ public class Monitor implements EventSender {
         if(startTime != null) {
             startTimestampPerId.invalidate(latencyId);
 
-            long elapsed = NANOSECONDS.toMillis(System.nanoTime() - startTime);
+            long endTimeNonos = System.nanoTime();
+            long endTimeMillis = System.currentTimeMillis();
+            long elapsedMillis = NANOSECONDS.toMillis(endTimeNonos - startTime);
 
-            LatencyEvent event = new LatencyEvent(elapsed).service(service).error(er);
+            LatencyEvent event = new LatencyEvent(elapsedMillis).service(service).error(er);
 
             if (tuple != null) {
                 event.tuple(tuple);
@@ -142,12 +144,12 @@ public class Monitor implements EventSender {
                 event.attributes(attributes);
             }
 
-            event.attribute("startTime", Long.toString(startTime));
+            event.attribute("startTime", Long.toString(endTimeMillis - elapsedMillis));
 
             send(event);
 
             if (logger.isDebugEnabled()) {
-                logger.debug("Monitored latency {} for key {}", elapsed, latencyId);
+                logger.debug("Monitored latency {} for key {}", elapsedMillis, latencyId);
             }
         } else {
             send(new ExceptionEvent("Latency monitor doesn't recognize key.").service(service));
