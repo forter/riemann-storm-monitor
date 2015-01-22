@@ -1,4 +1,5 @@
 package com.forter.monitoring;
+
 import backtype.storm.tuple.Tuple;
 import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.LoggerEventSender;
@@ -8,7 +9,6 @@ import com.forter.monitoring.events.LatencyEvent;
 import com.forter.monitoring.events.RiemannEvent;
 import com.forter.monitoring.utils.RiemannDiscovery;
 import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
 import com.google.common.cache.*;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.Ints;
@@ -35,7 +35,7 @@ public class Monitor implements EventSender {
     private long maxTime;
     private static final int MAX_CONCURRENCY_DEFAULT = 2;
     private static final long MAX_SIZE_DEFAULT = 1000;
-    private static final long MAX_TIME_DEFAULT = 60;
+    private static final long MAX_TIME_DEFAULT = 90;
 
     public Monitor(Map conf, final String boltService) {
         startTimestampPerId = createCache(conf, boltService);
