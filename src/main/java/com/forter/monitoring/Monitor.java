@@ -164,16 +164,20 @@ public class Monitor implements EventSender {
 
             final Optional<Long> emitLatencyNanos = latencies.getEmitLatencyNanos();
             if (emitLatencyNanos.isPresent()) {
-                RiemannEvent emitLatencyEvent = new RiemannEvent()
-                        .metric(NANOSECONDS.toMillis(emitLatencyNanos.get()))
-                        .service(service + " emit latency.")
-                        .tags("emit-latency");
+                final long emitMillis = NANOSECONDS.toMillis(emitLatencyNanos.get());
 
-                if (tuple != null) {
-                    emitLatencyEvent.tuple(tuple);
+                if (emitMillis >= 5) {
+                    RiemannEvent emitLatencyEvent = new RiemannEvent()
+                            .metric(emitMillis)
+                            .service(service + " emit latency.")
+                            .tags("emit-latency");
+
+                    if (tuple != null) {
+                        emitLatencyEvent.tuple(tuple);
+                    }
+
+                    send(emitLatencyEvent);
                 }
-
-                send(emitLatencyEvent);
             }
 
             if (logger.isDebugEnabled()) {
