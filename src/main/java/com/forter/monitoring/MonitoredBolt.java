@@ -6,13 +6,11 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.EventsAware;
 import com.forter.monitoring.events.ExceptionEvent;
 import com.forter.monitoring.events.RiemannEvent;
 import com.forter.monitoring.utils.PairKey;
-import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,14 +30,27 @@ public class MonitoredBolt implements IRichBolt {
     private Monitor monitor;
 
     private class MonitoredOutputCollector extends OutputCollector {
-
         MonitoredOutputCollector(IOutputCollector delegate) {
             super(delegate);
         }
 
         @Override
         public List<Integer> emit(String streamId, Collection<Tuple> anchors, List<Object> tuple) {
-            return super.emit(streamId, anchors, tuple);
+            if (anchors != null) {
+                for (Tuple t : anchors) {
+                    monitor.startEmitLatency(pair(t));
+                }
+            }
+
+            try {
+                return super.emit(streamId, anchors, tuple);
+            } finally {
+                if (anchors != null) {
+                    for (Tuple t : anchors) {
+                        monitor.endEmitLatency(pair(t));
+                    }
+                }
+            }
         }
 
         @Override

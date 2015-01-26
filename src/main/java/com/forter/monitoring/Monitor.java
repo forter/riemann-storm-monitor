@@ -27,7 +27,7 @@ The monitored bolts and spouts will use the functions in this class.
  */
 public class Monitor implements EventSender {
     private final EventSender eventSender;
-    private final Cache<Object, Long> startTimestampPerId;
+    private final Cache<Object, Latencies> latenciesPerId;
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final Map<String, String> customAttributes;
     private int maxConcurrency;
@@ -38,7 +38,7 @@ public class Monitor implements EventSender {
     private static final long MAX_TIME_DEFAULT = 90;
 
     public Monitor(Map conf, final String boltService) {
-        startTimestampPerId = createCache(conf, boltService);
+        latenciesPerId = createCache(conf, boltService);
 
         if (RiemannDiscovery.getInstance().isAWS()) {
             eventSender = RiemannEventSender.getInstance();
@@ -49,18 +49,18 @@ public class Monitor implements EventSender {
         customAttributes = extractCustomEventAttributes(conf);
     }
 
-    private Cache<Object, Long>  createCache(Map conf, final String boltService) {
+    private Cache<Object, Latencies>  createCache(Map conf, final String boltService) {
         initCacheConfig(conf);
         return CacheBuilder.newBuilder()
                 .maximumSize(maxSize)
                 .expireAfterWrite(maxTime, TimeUnit.SECONDS)
                 .concurrencyLevel(maxConcurrency)
-                .removalListener(new RemovalListener<Object, Long>() {
+                .removalListener(new RemovalListener<Object, Latencies>() {
                     // The on removal callback is not instantly called on removal, but I  hope it will be called
                     // eventually. see:
                     // http://stackoverflow.com/questions/21986551/guava-cachebuilder-doesnt-call-removal-listener
                     @Override
-                    public void onRemoval(RemovalNotification<Object, Long> notification) {
+                    public void onRemoval(RemovalNotification<Object, Latencies> notification) {
                         if (notification.getCause() != RemovalCause.EXPLICIT) {
                             ExceptionEvent event = new ExceptionEvent("Latency object unexpectedly removed");
                             event.attribute("removalCause", notification.getCause().name());
@@ -108,12 +108,26 @@ public class Monitor implements EventSender {
     }
 
     public void startLatency(Object id) {
-        final long now = System.nanoTime();
+        final Latencies latencies = new Latencies(System.nanoTime());
 
-        startTimestampPerId.put(id, now);
+        latenciesPerId.put(id, latencies);
 
         if (logger.isDebugEnabled()) {
             logger.debug("Monitoring latency for key {}", id);
+        }
+    }
+
+    public void startEmitLatency(Object latencyId) {
+        Latencies latencies = latenciesPerId.getIfPresent(latencyId);
+        if(latencies != null) {
+            latencies.setEmitStartNanos(System.nanoTime());
+        }
+    }
+
+    public void endEmitLatency(Object latencyId) {
+        Latencies latencies = latenciesPerId.getIfPresent(latencyId);
+        if(latencies != null) {
+            latencies.setEmitEndNanos(System.nanoTime());
         }
     }
 
@@ -126,13 +140,13 @@ public class Monitor implements EventSender {
     }
 
     public void endLatency(Object latencyId, String service, Tuple tuple, Map<String, String> attributes, Throwable er) {
-        Long startTime = startTimestampPerId.getIfPresent(latencyId);
-        if(startTime != null) {
-            startTimestampPerId.invalidate(latencyId);
+        Latencies latencies = latenciesPerId.getIfPresent(latencyId);
+        if(latencies != null) {
+            latenciesPerId.invalidate(latencyId);
 
-            long endTimeNonos = System.nanoTime();
+            long endTimeNanos = System.nanoTime();
             long endTimeMillis = System.currentTimeMillis();
-            long elapsedMillis = NANOSECONDS.toMillis(endTimeNonos - startTime);
+            long elapsedMillis = NANOSECONDS.toMillis(latencies.getExecuteLatencyNanos(endTimeNanos));
 
             LatencyEvent event = new LatencyEvent(elapsedMillis).service(service).error(er);
 
@@ -142,6 +156,11 @@ public class Monitor implements EventSender {
 
             if (attributes != null) {
                 event.attributes(attributes);
+            }
+
+            final Optional<Long> emitLatencyNanos = latencies.getEmitLatencyNanos();
+            if (emitLatencyNanos.isPresent()) {
+                event.attribute("emit-latency", String.valueOf(NANOSECONDS.toMillis(emitLatencyNanos.get())));
             }
 
             event.attribute("startTime", Long.toString(endTimeMillis - elapsedMillis));
