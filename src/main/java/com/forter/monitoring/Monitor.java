@@ -17,6 +17,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
@@ -26,16 +29,23 @@ This singleton class centralizes the storm-monitoring functions.
 The monitored bolts and spouts will use the functions in this class.
  */
 public class Monitor implements EventSender {
+    private static final int MAX_CONCURRENCY_DEFAULT = 2;
+    private static final long MAX_SIZE_DEFAULT = 1000;
+    private static final long MAX_TIME_DEFAULT = 60;
+    private static final long PERIODIC_CLEANUP_INTERVAL_MILLIS = TimeUnit.MINUTES.toMillis(5);
+
+    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private static final Random randomGenerator = new Random();
+
     private final EventSender eventSender;
     private final Cache<Object, Latencies> latenciesPerId;
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final Map<String, String> customAttributes;
+    private final Object cacheLock;
+
     private int maxConcurrency;
     private long maxSize;
     private long maxTime;
-    private static final int MAX_CONCURRENCY_DEFAULT = 2;
-    private static final long MAX_SIZE_DEFAULT = 1000;
-    private static final long MAX_TIME_DEFAULT = 90;
 
     public Monitor(Map conf, final String boltService) {
         latenciesPerId = createCache(conf, boltService);
@@ -47,10 +57,29 @@ public class Monitor implements EventSender {
             eventSender = new LoggerEventSender();
         }
         customAttributes = extractCustomEventAttributes(conf);
+        cacheLock = new Object();
+
+        // Generate an initial delay randomizer so that not all bolt cleanups would run in the same time. Randomizer
+        // value can be between negative and positive PERIODIC_CLEANUP_INTERVAL_MILLIS/2
+        long randomMillis = (randomGenerator.nextLong() % (PERIODIC_CLEANUP_INTERVAL_MILLIS/2));
+
+        scheduler.scheduleAtFixedRate(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        synchronized (cacheLock) {
+                            latenciesPerId.cleanUp();
+                        }
+                    }
+                },
+                PERIODIC_CLEANUP_INTERVAL_MILLIS + randomMillis,
+                PERIODIC_CLEANUP_INTERVAL_MILLIS,
+                TimeUnit.MILLISECONDS);
     }
 
     private Cache<Object, Latencies>  createCache(Map conf, final String boltService) {
         initCacheConfig(conf);
+
         return CacheBuilder.newBuilder()
                 .maximumSize(maxSize)
                 .expireAfterWrite(maxTime, TimeUnit.SECONDS)
@@ -65,6 +94,10 @@ public class Monitor implements EventSender {
                             ExceptionEvent event = new ExceptionEvent("Latency object unexpectedly removed");
                             event.attribute("removalCause", notification.getCause().name());
                             event.service(boltService);
+                            if (notification.getCause() == RemovalCause.EXPIRED &&
+                                    notification.getValue() != null && notification.getValue().getTuple() != null) {
+                                event.attribute("tuple", notification.getValue().getTuple().toString());
+                            }
                             send(event);
                         }
                     }
@@ -89,6 +122,23 @@ public class Monitor implements EventSender {
         this(new HashMap(), "");
     }
 
+    public void startExecute(Object latencyId, Tuple tuple, String service) {
+        registerLatency(latencyId, LatencyType.EXECUTE, true, service, tuple, null, null);
+    }
+
+    public void endExecute(Object latencyId, Map<String, String> attributes, Throwable er) {
+        registerLatency(latencyId, LatencyType.EXECUTE, false, null, null, attributes, er);
+    }
+
+    public void startLatency(Object latencyId, LatencyType type) {
+        registerLatency(latencyId, type, true, null, null, null, null);
+    }
+
+    public void endLatency(Object latencyId, LatencyType type) {
+        registerLatency(latencyId, type, false, null, null, null, null);
+
+    }
+
     public void send(RiemannEvent event) {
         event.attributes(customAttributes);
 
@@ -107,90 +157,86 @@ public class Monitor implements EventSender {
         eventSender.send(event);
     }
 
-    public void startLatency(Object id) {
-        final Latencies latencies = new Latencies(System.nanoTime());
+    private void registerLatency(Object latencyId, LatencyType type, boolean isStart, String service, Tuple tuple,
+                                    Map<String, String> attributes, Throwable er) {
+        final long nanos = System.nanoTime();
+        Latencies latencies;
+        synchronized (cacheLock) {
+            switch(type) {
+                case EXECUTE:
+                    if (isStart) {
+                        latencies = new Latencies(nanos, service, tuple);
 
-        latenciesPerId.put(id, latencies);
+                        latenciesPerId.put(latencyId, latencies);
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("Monitoring latency for key {}", id);
-        }
-    }
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("Monitoring latency for key {}", latencyId);
+                        }
+                    } else {
+                        latencies = latenciesPerId.getIfPresent(latencyId);
+                        if (latencies != null &&  latencies.setEndNanos(type, nanos) && latencies.getLatencyNanos(type).isPresent()) {
+                            latenciesPerId.invalidate(latencyId);
 
-    public void startEmitLatency(Object latencyId) {
-        Latencies latencies = latenciesPerId.getIfPresent(latencyId);
-        if(latencies != null) {
-            latencies.setEmitStartNanos(System.nanoTime());
-        }
-    }
+                            long endTimeMillis = System.currentTimeMillis();
+                            long elapsedMillis = NANOSECONDS.toMillis(latencies.getLatencyNanos(type).get());
 
-    public void endEmitLatency(Object latencyId) {
-        Latencies latencies = latenciesPerId.getIfPresent(latencyId);
-        if(latencies != null) {
-            latencies.setEmitEndNanos(System.nanoTime());
-        }
-    }
+                            LatencyEvent event = new LatencyEvent(elapsedMillis).service(latencies.getService()).error(er);
 
-    public void endSpoutLatency(Object latencyId, String service, Map<String, String> attributes, Throwable er) {
-        endLatency(latencyId, service, null, attributes, er);
-    }
+                            if (tuple != null) {
+                                event.tuple(latencies.getTuple());
+                            }
 
-    public void endLatency(Object latencyId, String service, Tuple tuple, Throwable er) {
-        endLatency(latencyId, service, tuple, null, er);
-    }
+                            if (attributes != null) {
+                                event.attributes(attributes);
+                            }
 
-    public void endLatency(Object latencyId, String service, Tuple tuple, Map<String, String> attributes, Throwable er) {
-        Latencies latencies = latenciesPerId.getIfPresent(latencyId);
-        if(latencies != null) {
-            latenciesPerId.invalidate(latencyId);
+                            event.attribute("startTime", Long.toString(endTimeMillis - elapsedMillis));
 
-            long endTimeNanos = System.nanoTime();
-            long endTimeMillis = System.currentTimeMillis();
-            long elapsedMillis = NANOSECONDS.toMillis(latencies.getExecuteLatencyNanos(endTimeNanos));
+                            send(event);
 
-            LatencyEvent event = new LatencyEvent(elapsedMillis).service(service).error(er);
+                            final Optional<Long> emitLatencyNanos = latencies.getLatencyNanos(LatencyType.EMIT);
+                            if (emitLatencyNanos.isPresent()) {
+                                final long emitMillis = NANOSECONDS.toMillis(emitLatencyNanos.get());
 
-            if (tuple != null) {
-                event.tuple(tuple);
-            }
+                                if (emitMillis >= 5) {
+                                    RiemannEvent emitLatencyEvent = new RiemannEvent()
+                                            .metric(emitMillis)
+                                            .service(service + " emit latency.")
+                                            .tags("emit-latency");
 
-            if (attributes != null) {
-                event.attributes(attributes);
-            }
+                                    if (tuple != null) {
+                                        emitLatencyEvent.tuple(tuple);
+                                    }
 
-            event.attribute("startTime", Long.toString(endTimeMillis - elapsedMillis));
+                                    send(emitLatencyEvent);
+                                }
+                            }
 
-            send(event);
-
-            final Optional<Long> emitLatencyNanos = latencies.getEmitLatencyNanos();
-            if (emitLatencyNanos.isPresent()) {
-                final long emitMillis = NANOSECONDS.toMillis(emitLatencyNanos.get());
-
-                if (emitMillis >= 5) {
-                    RiemannEvent emitLatencyEvent = new RiemannEvent()
-                            .metric(emitMillis)
-                            .service(service + " emit latency.")
-                            .tags("emit-latency");
-
-                    if (tuple != null) {
-                        emitLatencyEvent.tuple(tuple);
+                            if (logger.isDebugEnabled()) {
+                                logger.debug("Monitored latency {} for key {}", elapsedMillis, latencyId);
+                            }
+                        } else {
+                            send(new ExceptionEvent("Latency monitor doesn't recognize key.").service(service));
+                            if (er == null) {
+                                logger.warn("Latency monitor doesn't recognize key {}.", latencyId);
+                            }
+                            else {
+                                send(new ExceptionEvent(er).service(service));
+                                logger.warn("Latency monitor doesn't recognize key {}. Swallowed exception {}", latencyId, er);
+                            }
+                        }
                     }
-
-                    send(emitLatencyEvent);
-                }
-            }
-
-            if (logger.isDebugEnabled()) {
-                logger.debug("Monitored latency {} for key {}", elapsedMillis, latencyId);
-            }
-        } else {
-            send(new ExceptionEvent("Latency monitor doesn't recognize key.").service(service));
-            if (er == null) {
-                logger.warn("Latency monitor doesn't recognize key {}.", latencyId);
-            }
-            else {
-                send(new ExceptionEvent(er).service(service));
-                logger.warn("Latency monitor doesn't recognize key {}. Swallowed exception {}", latencyId, er);
+                    break;
+                default:
+                    latencies = latenciesPerId.getIfPresent(latencyId);
+                    if (latencies != null) {
+                        if (isStart) {
+                            latencies.setStartNanos(type, nanos);
+                        } else {
+                            latencies.setEndNanos(type, nanos);
+                        }
+                    }
+                    break;
             }
         }
     }
@@ -206,7 +252,7 @@ public class Monitor implements EventSender {
             }
         }
 
-        return new HashMap<String, String>();
+        return new HashMap<>();
     }
 
     private Map<String,String> parseAttributesString(String attributesString) {

@@ -38,7 +38,7 @@ public class MonitoredBolt implements IRichBolt {
         public List<Integer> emit(String streamId, Collection<Tuple> anchors, List<Object> tuple) {
             if (anchors != null) {
                 for (Tuple t : anchors) {
-                    monitor.startEmitLatency(pair(t));
+                    monitor.startLatency(pair(t), LatencyType.EMIT);
                 }
             }
 
@@ -47,7 +47,7 @@ public class MonitoredBolt implements IRichBolt {
             } finally {
                 if (anchors != null) {
                     for (Tuple t : anchors) {
-                        monitor.endEmitLatency(pair(t));
+                        monitor.endLatency(pair(t), LatencyType.EMIT);
                     }
                 }
             }
@@ -60,13 +60,13 @@ public class MonitoredBolt implements IRichBolt {
 
         @Override
         public void ack(Tuple input) {
-            monitor.endLatency(pair(input), boltService, input, null);
+            monitor.endExecute(pair(input), null, null);
             super.ack(input);
         }
 
         @Override
         public void fail(Tuple input) {
-            monitor.endLatency(pair(input), boltService, input, new Throwable(boltService + " failed to process tuple"));
+            monitor.endExecute(pair(input), null, new Throwable(boltService + " failed to process tuple"));
             super.fail(input);
         }
 
@@ -104,7 +104,7 @@ public class MonitoredBolt implements IRichBolt {
     @Override
     public void execute(Tuple tuple) {
         logger.trace("Entered execute with tuple : ", tuple);
-        monitor.startLatency(pair(tuple));
+        monitor.startExecute(pair(tuple), tuple, this.boltService);
         try {
             delegate.execute(tuple);
             logger.trace("Finished execution with tuple : ", tuple);

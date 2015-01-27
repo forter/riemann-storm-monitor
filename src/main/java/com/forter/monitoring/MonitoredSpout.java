@@ -48,14 +48,14 @@ public class MonitoredSpout implements IRichSpout {
                 @Override
                 public List<Integer> emit(String streamId, List<Object> tuple, Object messageId) {
                     List<Integer> emitResult = super.emit(streamId, tuple, messageId);
-                    monitor.startLatency(messageId);
+                    monitor.startExecute(messageId, null, spoutService);
                     return emitResult;
                 }
 
                 @Override
                 public void emitDirect(int taskId, String streamId, List<Object> tuple, Object messageId) {
                     super.emitDirect(taskId, streamId, tuple, messageId);
-                    monitor.startLatency(messageId);
+                    monitor.startExecute(messageId, null, spoutService);
                 }
             });
         } catch(Throwable t) {
@@ -84,10 +84,9 @@ public class MonitoredSpout implements IRichSpout {
         if(idName.isPresent()) {
             Map<String, String> attributes = Maps.newHashMap();
             attributes.put(idName.get(), String.valueOf(id));
-
-            monitor.endSpoutLatency(id, spoutService, attributes, null);
+            monitor.endExecute(id, attributes, null);
         } else {
-            monitor.endSpoutLatency(id, spoutService, null, null);
+            monitor.endExecute(id, null, null);
         }
 
         try {
@@ -104,9 +103,9 @@ public class MonitoredSpout implements IRichSpout {
             Map<String, String> attributes = Maps.newHashMap();
             attributes.put(idName.get(), String.valueOf(id));
 
-            monitor.endSpoutLatency(id, spoutService, attributes, new Throwable("Storm failed."));
+            monitor.endExecute(id, attributes, new Throwable("Storm failed."));
         } else {
-            monitor.endLatency(id, spoutService, null, new Throwable("Storm failed."));
+            monitor.endExecute(id, null, new Throwable("Storm failed."));
         }
         try {
             delegate.fail(id);
