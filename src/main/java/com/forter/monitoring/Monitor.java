@@ -34,7 +34,7 @@ This singleton class centralizes the storm-monitoring functions.
 The monitored bolts and spouts will use the functions in this class.
  */
 public class Monitor implements EventSender {
-    public static final String REPORT_EXCLUSIONS_EXTRA_ACK_CONFIG_PROD = "monitoring.report.exclusions.extra-ack";
+    public static final String BOLT_EXCLUSIONS_EXTRA_ACK_ERROR_PROP = "monitoring.report.exclusions.extra-ack";
 
     private static final int MAX_CONCURRENCY_DEFAULT = 2;
     private static final long MAX_SIZE_DEFAULT = 1000;
@@ -90,7 +90,7 @@ public class Monitor implements EventSender {
     }
 
     private Set<String> getExtraAckReportingExclusions(Map conf) {
-        final String prop = (String) conf.get(REPORT_EXCLUSIONS_EXTRA_ACK_CONFIG_PROD);
+        final String prop = (String) conf.get(BOLT_EXCLUSIONS_EXTRA_ACK_ERROR_PROP);
 
         Set<String> result = Sets.newHashSet();
 
