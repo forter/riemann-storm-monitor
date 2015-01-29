@@ -10,6 +10,8 @@ public class ExceptionEvent extends RiemannEvent {
     }
 
     public ExceptionEvent(Throwable t) {
-        this(Throwables.getStackTraceAsString(t));
+        this(t.getMessage());
+        this.attribute("stackTrace", Throwables.getStackTraceAsString(t));
+        this.attribute("exceptionType", t.getClass().getSimpleName());
     }
 }

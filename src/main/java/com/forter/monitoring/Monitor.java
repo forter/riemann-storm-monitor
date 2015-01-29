@@ -9,8 +9,12 @@ import com.forter.monitoring.events.LatencyEvent;
 import com.forter.monitoring.events.RiemannEvent;
 import com.forter.monitoring.utils.RiemannDiscovery;
 import com.google.common.base.Optional;
+import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import com.google.common.cache.*;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -29,6 +34,8 @@ This singleton class centralizes the storm-monitoring functions.
 The monitored bolts and spouts will use the functions in this class.
  */
 public class Monitor implements EventSender {
+    public static final String REPORT_EXCLUSIONS_EXTRA_ACK_CONFIG_PROD = "monitoring.report.exclusions.extra-ack";
+
     private static final int MAX_CONCURRENCY_DEFAULT = 2;
     private static final long MAX_SIZE_DEFAULT = 1000;
     private static final long MAX_TIME_DEFAULT = 60;
@@ -42,6 +49,8 @@ public class Monitor implements EventSender {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final Map<String, String> customAttributes;
     private final Object cacheLock;
+    private final Set<String> extraAckReportingExclusions;
+    private final String boltService;
 
     private int maxConcurrency;
     private long maxSize;
@@ -49,6 +58,7 @@ public class Monitor implements EventSender {
 
     public Monitor(Map conf, final String boltService) {
         latenciesPerId = createCache(conf, boltService);
+        this.boltService = boltService;
 
         if (RiemannDiscovery.getInstance().isAWS()) {
             eventSender = RiemannEventSender.getInstance();
@@ -63,6 +73,8 @@ public class Monitor implements EventSender {
         // value can be between negative and positive PERIODIC_CLEANUP_INTERVAL_MILLIS/2
         long randomMillis = (randomGenerator.nextLong() % (PERIODIC_CLEANUP_INTERVAL_MILLIS/2));
 
+        this.extraAckReportingExclusions = getExtraAckReportingExclusions(conf);
+
         scheduler.scheduleAtFixedRate(
                 new Runnable() {
                     @Override
@@ -75,6 +87,18 @@ public class Monitor implements EventSender {
                 PERIODIC_CLEANUP_INTERVAL_MILLIS + randomMillis,
                 PERIODIC_CLEANUP_INTERVAL_MILLIS,
                 TimeUnit.MILLISECONDS);
+    }
+
+    private Set<String> getExtraAckReportingExclusions(Map conf) {
+        final String prop = (String) conf.get(REPORT_EXCLUSIONS_EXTRA_ACK_CONFIG_PROD);
+
+        Set<String> result = Sets.newHashSet();
+
+        if (!Strings.isNullOrEmpty(prop)) {
+            Iterables.addAll(result, Splitter.on(",").split(prop));
+        }
+
+        return result;
     }
 
     private Cache<Object, Latencies>  createCache(Map conf, final String boltService) {
@@ -202,7 +226,8 @@ public class Monitor implements EventSender {
                                     RiemannEvent emitLatencyEvent = new RiemannEvent()
                                             .metric(emitMillis)
                                             .service(service + " emit latency.")
-                                            .tags("emit-latency");
+                                            .tags("emit-latency")
+                                            .service(this.boltService);
 
                                     if (tuple != null) {
                                         emitLatencyEvent.tuple(tuple);
@@ -216,13 +241,16 @@ public class Monitor implements EventSender {
                                 logger.debug("Monitored latency {} for key {}", elapsedMillis, latencyId);
                             }
                         } else {
-                            send(new ExceptionEvent("Latency monitor doesn't recognize key.").service(service));
-                            if (er == null) {
-                                logger.warn("Latency monitor doesn't recognize key {}.", latencyId);
-                            }
-                            else {
-                                send(new ExceptionEvent(er).service(service));
-                                logger.warn("Latency monitor doesn't recognize key {}. Swallowed exception {}", latencyId, er);
+                            if (!extraAckReportingExclusions.contains(this.boltService)) {
+                                send(new ExceptionEvent("Latency monitor doesn't recognize key.").service(service));
+                                if (er == null) {
+                                    logger.warn("Latency monitor doesn't recognize key {}.", latencyId);
+                                } else {
+                                    send(new ExceptionEvent(er).service(service));
+                                    logger.warn("Latency monitor doesn't recognize key {}. Swallowed exception {}", latencyId, er);
+                                }
+                            } else {
+                                logger.trace("Excluded event for non recognized key in latency monitor {}.", latencyId);
                             }
                         }
                     }
