@@ -246,7 +246,7 @@ public class Monitor implements EventSender {
                                 if (er == null) {
                                     logger.warn("Latency monitor doesn't recognize key {}.", latencyId);
                                 } else {
-                                    send(new ExceptionEvent(er).service(service));
+                                    send(new ExceptionEvent(er).service(this.boltService));
                                     logger.warn("Latency monitor doesn't recognize key {}. Swallowed exception {}", latencyId, er);
                                 }
                             } else {
