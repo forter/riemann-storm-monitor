@@ -9,9 +9,12 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.EventsAware;
+import com.forter.monitoring.eventSender.LoggerEventSender;
+import com.forter.monitoring.eventSender.RiemannEventSender;
 import com.forter.monitoring.events.ExceptionEvent;
 import com.forter.monitoring.events.RiemannEvent;
 import com.forter.monitoring.utils.PairKey;
+import com.forter.monitoring.utils.RiemannDiscovery;
 import com.google.common.base.Throwables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +32,7 @@ public class MonitoredBolt implements IRichBolt {
     private transient Logger logger;
     private String boltService;
     private Monitor monitor;
+    private EventSender injectedEventSender;
 
     private class MonitoredOutputCollector extends OutputCollector {
         MonitoredOutputCollector(IOutputCollector delegate) {
@@ -101,8 +105,19 @@ public class MonitoredBolt implements IRichBolt {
         try {
             boltService = context.getThisComponentId();
             logger = LoggerFactory.getLogger(boltService);
-            monitor = new Monitor(conf, boltService);
+
+            EventSender eventSender;
+            if (injectedEventSender != null) {
+                eventSender = injectedEventSender;
+            } else if (RiemannDiscovery.getInstance().isAWS()) {
+                eventSender = RiemannEventSender.getInstance();
+            } else {
+                //fallback for local mode
+                eventSender = new LoggerEventSender();
+            }
+            monitor = new Monitor(conf, boltService, eventSender);
             injectEventSender(delegate, monitor);
+
             delegate.prepare(conf, context, new MonitoredOutputCollector(collector));
         } catch(Throwable t) {
             logger.warn("Error during bolt prepare : ", t);
@@ -149,6 +164,10 @@ public class MonitoredBolt implements IRichBolt {
 
     public void send(RiemannEvent event) {
         monitor.send(event);
+    }
+
+    public void setInjectedEventSender(EventSender injectedEventSender) {
+        this.injectedEventSender = injectedEventSender;
     }
 }
 

@@ -5,6 +5,9 @@ import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.EventsAware;
+import com.forter.monitoring.eventSender.LoggerEventSender;
+import com.forter.monitoring.eventSender.RiemannEventSender;
+import com.forter.monitoring.utils.RiemannDiscovery;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
@@ -41,7 +44,16 @@ public class MonitoredSpout implements IRichSpout {
     public void open(Map conf, final TopologyContext context, SpoutOutputCollector collector) {
         logger = LoggerFactory.getLogger(delegate.getClass());
         spoutService = context.getThisComponentId();
-        monitor = new Monitor(conf, spoutService);
+
+        EventSender eventSender;
+        if (RiemannDiscovery.getInstance().isAWS()) {
+            eventSender = RiemannEventSender.getInstance();
+        } else {
+            //fallback for local mode
+            eventSender = new LoggerEventSender();
+        }
+        monitor = new Monitor(conf, spoutService, eventSender);
+
         injectEventSender(delegate, monitor);
         try {
             delegate.open(conf, context, new SpoutOutputCollector(collector) {

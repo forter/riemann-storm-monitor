@@ -56,18 +56,13 @@ public class Monitor implements EventSender {
     private long maxSize;
     private long maxTime;
 
-    public Monitor(Map conf, final String boltService) {
-        latenciesPerId = createCache(conf, boltService);
-        this.boltService = boltService;
+    public Monitor(Map conf, final String boltService, EventSender eventSender) {
+        this.latenciesPerId = createCache(conf, boltService);
 
-        if (RiemannDiscovery.getInstance().isAWS()) {
-            eventSender = RiemannEventSender.getInstance();
-        } else {
-            //fallback for local mode
-            eventSender = new LoggerEventSender();
-        }
-        customAttributes = extractCustomEventAttributes(conf);
-        cacheLock = new Object();
+        this.customAttributes = extractCustomEventAttributes(conf);
+        this.eventSender = eventSender;
+        this.cacheLock = new Object();
+        this.boltService = boltService;
 
         // Generate an initial delay randomizer so that not all bolt cleanups would run in the same time. Randomizer
         // value can be between negative and positive PERIODIC_CLEANUP_INTERVAL_MILLIS/2
@@ -87,6 +82,10 @@ public class Monitor implements EventSender {
                 PERIODIC_CLEANUP_INTERVAL_MILLIS + randomMillis,
                 PERIODIC_CLEANUP_INTERVAL_MILLIS,
                 TimeUnit.MILLISECONDS);
+    }
+
+    public Monitor() {
+        this(new HashMap(), "", null);
     }
 
     private Set<String> getExtraAckReportingExclusions(Map conf) {
@@ -140,10 +139,6 @@ public class Monitor implements EventSender {
 
         logger.info("Initializing latencies map with parameters maxSize: {}, maxTimeSeconds: {}, maxConcurrency: {}",
                 maxSize, maxTime, maxConcurrency);
-    }
-
-    public Monitor() {
-        this(new HashMap(), "");
     }
 
     public void startExecute(Object latencyId, Tuple tuple, String service) {
