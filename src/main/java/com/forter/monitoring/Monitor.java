@@ -206,7 +206,7 @@ public class Monitor implements EventSender {
 
                             LatencyEvent event = new LatencyEvent(elapsedMillis).service(latencies.getService()).error(er);
 
-                            if (tuple != null) {
+                            if (latencies.getTuple() != null) {
                                 event.tuple(latencies.getTuple());
                             }
 
