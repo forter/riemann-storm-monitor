@@ -127,15 +127,10 @@ public class MonitoredBolt implements IRichBolt {
 
     @Override
     public void execute(Tuple tuple) {
-        logger.trace("Entered execute with tuple : ", tuple);
+        logger.trace("Entered execute with tuple: ", tuple);
         monitor.startExecute(pair(tuple), tuple, this.boltService);
-        try {
-            delegate.execute(tuple);
-            logger.trace("Finished execution with tuple : ", tuple);
-        } catch(Throwable t) {
-            logger.info("Error during bolt execute : ", t);
-            throw Throwables.propagate(t);
-        }
+        delegate.execute(tuple);
+        logger.trace("Finished execution with tuple: ", tuple);
     }
 
     private PairKey pair(Tuple tuple) {
