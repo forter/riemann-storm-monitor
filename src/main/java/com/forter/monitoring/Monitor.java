@@ -19,6 +19,8 @@ import com.google.common.primitives.Ints;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -198,6 +200,8 @@ public class Monitor implements EventSender {
 
                             long endTimeMillis = System.currentTimeMillis();
                             long elapsedMillis = NANOSECONDS.toMillis(latencies.getLatencyNanos(type).get());
+                            DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
+                            String startTime = df.format(endTimeMillis - elapsedMillis);
 
                             LatencyEvent event = new LatencyEvent(elapsedMillis).service(latencies.getService()).error(er);
 
@@ -209,7 +213,7 @@ public class Monitor implements EventSender {
                                 event.attributes(attributes);
                             }
 
-                            event.attribute("startTime", Long.toString(endTimeMillis - elapsedMillis));
+                            event.attribute("startTime", startTime);
 
                             send(event);
 
