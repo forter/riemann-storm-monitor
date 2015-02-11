@@ -213,7 +213,7 @@ public class Monitor implements EventSender {
                                 event.attributes(attributes);
                             }
 
-                            event.attribute("startTime", startTime);
+                            event.attribute("startTime2", startTime);
 
                             send(event);
 
