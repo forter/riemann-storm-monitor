@@ -46,7 +46,7 @@ public class Monitor implements EventSender {
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private static final Random randomGenerator = new Random();
 
-    private final DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss:SSS'ZZ'");
+    private final DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
     private final EventSender eventSender;
     private final Cache<Object, Latencies> latenciesPerId;
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
