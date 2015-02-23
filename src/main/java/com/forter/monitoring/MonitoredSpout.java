@@ -5,6 +5,9 @@ import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.EventsAware;
+import com.forter.monitoring.eventSender.LoggerEventSender;
+import com.forter.monitoring.eventSender.RiemannEventSender;
+import com.forter.monitoring.utils.RiemannDiscovery;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
@@ -41,21 +44,30 @@ public class MonitoredSpout implements IRichSpout {
     public void open(Map conf, final TopologyContext context, SpoutOutputCollector collector) {
         logger = LoggerFactory.getLogger(delegate.getClass());
         spoutService = context.getThisComponentId();
-        monitor = new Monitor(conf);
+
+        EventSender eventSender;
+        if (RiemannDiscovery.getInstance().isAWS()) {
+            eventSender = RiemannEventSender.getInstance();
+        } else {
+            //fallback for local mode
+            eventSender = new LoggerEventSender();
+        }
+        monitor = new Monitor(conf, spoutService, eventSender);
+
         injectEventSender(delegate, monitor);
         try {
             delegate.open(conf, context, new SpoutOutputCollector(collector) {
                 @Override
                 public List<Integer> emit(String streamId, List<Object> tuple, Object messageId) {
                     List<Integer> emitResult = super.emit(streamId, tuple, messageId);
-                    monitor.startLatency(messageId);
+                    monitor.startExecute(messageId, null, spoutService);
                     return emitResult;
                 }
 
                 @Override
                 public void emitDirect(int taskId, String streamId, List<Object> tuple, Object messageId) {
                     super.emitDirect(taskId, streamId, tuple, messageId);
-                    monitor.startLatency(messageId);
+                    monitor.startExecute(messageId, null, spoutService);
                 }
             });
         } catch(Throwable t) {
@@ -84,10 +96,9 @@ public class MonitoredSpout implements IRichSpout {
         if(idName.isPresent()) {
             Map<String, String> attributes = Maps.newHashMap();
             attributes.put(idName.get(), String.valueOf(id));
-
-            monitor.endSpoutLatency(id, spoutService, attributes, null);
+            monitor.endExecute(id, attributes, null);
         } else {
-            monitor.endSpoutLatency(id, spoutService, null, null);
+            monitor.endExecute(id, null, null);
         }
 
         try {
@@ -104,9 +115,9 @@ public class MonitoredSpout implements IRichSpout {
             Map<String, String> attributes = Maps.newHashMap();
             attributes.put(idName.get(), String.valueOf(id));
 
-            monitor.endSpoutLatency(id, spoutService, attributes, new Throwable("Storm failed."));
+            monitor.endExecute(id, attributes, new Throwable("Storm failed."));
         } else {
-            monitor.endLatency(id, spoutService, null, new Throwable("Storm failed."));
+            monitor.endExecute(id, null, new Throwable("Storm failed."));
         }
         try {
             delegate.fail(id);
