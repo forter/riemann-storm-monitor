@@ -98,7 +98,7 @@ public class RiemannEventSender implements EventSender {
     public void sendRawWithAck(RiemannEvent event) {
         Boolean success = null;
         try {
-            success = createEvent()
+            EventDSL eventDSL = createEvent()
                     .description(event.description)
                     .host(event.host)
                     .service(event.service)
@@ -107,8 +107,12 @@ public class RiemannEventSender implements EventSender {
                     .metric(event.metric)
                     .ttl(event.ttl == null ? DEFAULT_TTL_SEC : event.ttl)
                     .tags(event.tags)
-                    .attributes(event.customAttributes)
-                    .sendWithAck();
+                    .attributes(event.customAttributes);
+            //To avoid 127.0.0.1 appearing as event host
+            if (event.host != null) {
+                eventDSL.host(event.host);
+            }
+            success = eventDSL.sendWithAck();
             if (!Boolean.TRUE.equals(success)) {
                 throw new IOException("No ACK received from riemann.");
             }
