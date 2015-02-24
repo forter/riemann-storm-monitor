@@ -1,5 +1,6 @@
 package com.forter.monitoring.events;
 
+import com.forter.monitoring.utils.MonitoringConstants;
 import com.google.common.base.Throwables;
 
 public class ExceptionEvent extends RiemannEvent {
@@ -11,7 +12,7 @@ public class ExceptionEvent extends RiemannEvent {
 
     public ExceptionEvent(Throwable t) {
         this(t.getMessage());
-        this.attribute("stackTrace", Throwables.getStackTraceAsString(t));
-        this.attribute("exceptionType", t.getClass().getSimpleName());
+        this.attribute(MonitoringConstants.ERROR_STACK_ATTR_ID, Throwables.getStackTraceAsString(t));
+        this.attribute(MonitoringConstants.ERROR_TYPE_ATTR_ID, t.getClass().getSimpleName());
     }
 }
