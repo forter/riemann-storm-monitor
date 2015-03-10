@@ -173,6 +173,15 @@ public class Monitor implements EventSender {
                 }
             }
 
+            if (event.tuple.contains("_queueTime") && event.customAttributes.containsKey("startTimeMillis")) {
+                final String queueTimeString = event.tuple.getValueByField("_queueTime").toString();
+                if (!queueTimeString.equals("unknown")) {
+                    final long queueTime = Long.valueOf(queueTimeString);
+                    final Long startTimeMillis = Long.valueOf(event.customAttributes.get("startTimeMillis"));
+                    attributes.put("timeElapsedToStart", Long.toString(startTimeMillis - queueTime));
+                }
+            }
+
             event.attributes(attributes);
         }
 
@@ -201,7 +210,10 @@ public class Monitor implements EventSender {
 
                             long endTimeMillis = System.currentTimeMillis();
                             long elapsedMillis = NANOSECONDS.toMillis(latencies.getLatencyNanos(type).get());
-                            String startTime = df.format(endTimeMillis - elapsedMillis);
+
+                            final long startTimeMillis = endTimeMillis - elapsedMillis;
+
+                            String startTime = df.format(startTimeMillis);
 
                             LatencyEvent event = new LatencyEvent(elapsedMillis).service(latencies.getService()).error(er);
 
@@ -214,6 +226,7 @@ public class Monitor implements EventSender {
                             }
 
                             event.attribute("startTime", startTime);
+                            event.attribute("startTimeMillis", Long.toString(startTimeMillis));
 
                             send(event);
 
