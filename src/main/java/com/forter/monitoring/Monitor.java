@@ -182,6 +182,9 @@ public class Monitor implements EventSender {
                 }
             }
 
+            event.customAttributes.put("tupleReceivedComponent", event.tuple.getSourceComponent());
+            event.customAttributes.put("tupleReceivedStream", event.tuple.getSourceStreamId());
+
             event.attributes(attributes);
         }
 
