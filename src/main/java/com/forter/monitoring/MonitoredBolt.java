@@ -65,13 +65,17 @@ public class MonitoredBolt implements IRichBolt {
 
         @Override
         public void ack(Tuple input) {
-            monitor.endExecute(pair(input), null, null);
+            if (monitor.shouldMonitor(input)) {
+                monitor.endExecute(pair(input), null, null);
+            }
             super.ack(input);
         }
 
         @Override
         public void fail(Tuple input) {
-            monitor.endExecute(pair(input), null, new Throwable(boltService + " failed to process tuple"));
+            if (monitor.shouldMonitor(input)) {
+                monitor.endExecute(pair(input), null, new Throwable(boltService + " failed to process tuple"));
+            }
             super.fail(input);
         }
 
@@ -128,7 +132,9 @@ public class MonitoredBolt implements IRichBolt {
     @Override
     public void execute(Tuple tuple) {
         logger.trace("Entered execute with tuple: ", tuple);
-        monitor.startExecute(pair(tuple), tuple, this.boltService);
+        if (monitor.shouldMonitor(tuple)) {
+            monitor.startExecute(pair(tuple), tuple, this.boltService);
+        }
         delegate.execute(tuple);
         logger.trace("Finished execution with tuple: ", tuple);
     }

@@ -37,6 +37,7 @@ The monitored bolts and spouts will use the functions in this class.
  */
 public class Monitor implements EventSender {
     public static final String BOLT_EXCLUSIONS_EXTRA_ACK_ERROR_PROP = "monitoring.report.exclusions.extra-ack";
+    public static final String IGNORED_STREAMS_PROP = "monitoring.stream.ignore";
 
     private static final int MAX_CONCURRENCY_DEFAULT = 2;
     private static final long MAX_SIZE_DEFAULT = 1000;
@@ -54,6 +55,7 @@ public class Monitor implements EventSender {
     private final Object cacheLock;
     private final Set<String> extraAckReportingExclusions;
     private final String boltService;
+    private final Set<String> ignoredStreams;
 
     private int maxConcurrency;
     private long maxSize;
@@ -71,7 +73,8 @@ public class Monitor implements EventSender {
         // value can be between negative and positive PERIODIC_CLEANUP_INTERVAL_MILLIS/2
         long randomMillis = (randomGenerator.nextLong() % (PERIODIC_CLEANUP_INTERVAL_MILLIS/2));
 
-        this.extraAckReportingExclusions = getExtraAckReportingExclusions(conf);
+        this.extraAckReportingExclusions = getListConfigurationPropery(conf, BOLT_EXCLUSIONS_EXTRA_ACK_ERROR_PROP);
+        this.ignoredStreams = getListConfigurationPropery(conf, IGNORED_STREAMS_PROP);
 
         scheduler.scheduleAtFixedRate(
                 new Runnable() {
@@ -87,12 +90,8 @@ public class Monitor implements EventSender {
                 TimeUnit.MILLISECONDS);
     }
 
-    public Monitor() {
-        this(new HashMap(), "", null);
-    }
-
-    private Set<String> getExtraAckReportingExclusions(Map conf) {
-        final String prop = (String) conf.get(BOLT_EXCLUSIONS_EXTRA_ACK_ERROR_PROP);
+    private Set<String> getListConfigurationPropery(Map conf, String configProp) {
+        final String prop = (String) conf.get(configProp);
 
         Set<String> result = Sets.newHashSet();
 
@@ -101,6 +100,10 @@ public class Monitor implements EventSender {
         }
 
         return result;
+    }
+
+    public Monitor() {
+        this(new HashMap(), "", null);
     }
 
     private Cache<Object, Latencies>  createCache(Map conf, final String boltService) {
@@ -320,5 +323,9 @@ public class Monitor implements EventSender {
             return Optional.of((RiemannEventSender)eventSender);
         }
         return Optional.absent();
+    }
+
+    public boolean shouldMonitor(Tuple input) {
+        return !this.ignoredStreams.contains(input.getSourceStreamId());
     }
 }
