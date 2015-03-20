@@ -2,12 +2,10 @@ package com.forter.monitoring;
 
 import backtype.storm.tuple.Tuple;
 import com.forter.monitoring.eventSender.EventSender;
-import com.forter.monitoring.eventSender.LoggerEventSender;
 import com.forter.monitoring.eventSender.RiemannEventSender;
 import com.forter.monitoring.events.ExceptionEvent;
 import com.forter.monitoring.events.LatencyEvent;
 import com.forter.monitoring.events.RiemannEvent;
-import com.forter.monitoring.utils.RiemannDiscovery;
 import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
@@ -179,9 +177,11 @@ public class Monitor implements EventSender {
             if (event.tuple.contains("_queueTime") && event.customAttributes.containsKey("startTimeMillis")) {
                 final String queueTimeString = event.tuple.getValueByField("_queueTime").toString();
                 if (!queueTimeString.equals("unknown")) {
-                    final long queueTime = Long.valueOf(queueTimeString);
-                    final Long startTimeMillis = Long.valueOf(event.customAttributes.get("startTimeMillis"));
-                    attributes.put("timeElapsedToStart", Long.toString(startTimeMillis - queueTime));
+                    try {
+                        final long queueTime = Long.valueOf(queueTimeString);
+                        final Long startTimeMillis = Long.valueOf(event.customAttributes.get("startTimeMillis"));
+                        attributes.put("timeElapsedToStart", Long.toString(startTimeMillis - queueTime));
+                    } catch (NumberFormatException nfe) { /* ignore */ }
                 }
             }
 
