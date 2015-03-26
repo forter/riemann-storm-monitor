@@ -121,9 +121,13 @@ public class Monitor implements EventSender {
                             ExceptionEvent event = new ExceptionEvent("Latency object unexpectedly removed");
                             event.attribute("removalCause", notification.getCause().name());
                             event.service(boltService);
-                            if (notification.getCause() == RemovalCause.EXPIRED &&
-                                    notification.getValue() != null && notification.getValue().getTuple() != null) {
-                                event.attribute("tuple", notification.getValue().getTuple().toString());
+                            if (notification.getValue() != null && notification.getValue().getTuple() != null) {
+                                final Tuple tuple = notification.getValue().getTuple();
+                                event.attribute("receivedFrom", tuple.getSourceComponent());
+                                if (notification.getCause() == RemovalCause.EXPIRED) {
+                                    event.attribute("tuple", tuple.toString());
+                                    event.tags("pii");
+                                }
                             }
                             send(event);
                         }
