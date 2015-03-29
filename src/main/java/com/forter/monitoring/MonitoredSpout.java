@@ -7,6 +7,7 @@ import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.EventsAware;
 import com.forter.monitoring.eventSender.LoggerEventSender;
 import com.forter.monitoring.eventSender.RiemannEventSender;
+import com.forter.monitoring.events.RiemannEvent;
 import com.forter.monitoring.utils.RiemannDiscovery;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
@@ -145,6 +146,10 @@ public class MonitoredSpout implements IRichSpout {
     @Override
     public Map<String, Object> getComponentConfiguration() {
         return delegate.getComponentConfiguration();
+    }
+
+    public void send(RiemannEvent event) {
+        monitor.send(event);
     }
 
     /* A function to set the id name in the tuple.
