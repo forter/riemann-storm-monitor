@@ -113,7 +113,7 @@ public class MonitoredBolt implements IRichBolt {
             EventSender eventSender;
             if (injectedEventSender != null) {
                 eventSender = injectedEventSender;
-            } else if (RiemannDiscovery.getInstance().isAWS()) {
+            } else if (RiemannDiscovery.getInstance().isAWS() && !RiemannDiscovery.getInstance().isJenkins()) {
                 eventSender = RiemannEventSender.getInstance();
             } else {
                 //fallback for local mode

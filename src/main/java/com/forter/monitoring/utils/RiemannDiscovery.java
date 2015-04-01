@@ -1,4 +1,5 @@
 package com.forter.monitoring.utils;
+
 import com.amazonaws.auth.AWSCredentialsProviderChain;
 import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
 import com.amazonaws.auth.InstanceProfileCredentialsProvider;
@@ -8,7 +9,9 @@ import com.amazonaws.services.ec2.model.*;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -26,6 +29,8 @@ It is possible to use it to get the IP of a machine, based on its name / id.
 */
 public class RiemannDiscovery {
     private final AmazonEC2 ec2Client;
+    private final Object nameCacheLocker = new Object();
+    private Optional<String> retrievedName = null;
 
     private RiemannDiscovery() {
         ec2Client = new AmazonEC2Client(new AWSCredentialsProviderChain(new InstanceProfileCredentialsProvider(), new EnvironmentVariableCredentialsProvider()));
@@ -38,8 +43,20 @@ public class RiemannDiscovery {
     public static RiemannDiscovery getInstance() {
         return SingletonHolder.INSTANCE;
     }
+
     public String retrieveInstanceId() throws IOException {
         return retrieveMetadata("instance-id");
+    }
+
+    public boolean isJenkins() {
+        if (!isAWS()) return false;
+        final Optional<String> name;
+        try {
+            name = retrieveName();
+            return name.isPresent() && name.isPresent() && name.get().contains("jenkins");
+        } catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
     }
 
     public String retrieveMetadata(String metadata) throws IOException {
@@ -67,12 +84,18 @@ public class RiemannDiscovery {
     }
 
     public Optional<String> retrieveName() throws IOException {
-        if (!isAWS()) {
-            return Optional.absent();
+        if (retrievedName != null) return retrievedName;
+        synchronized (nameCacheLocker) {
+            if (retrievedName != null) return retrievedName;
+            if (!isAWS()) {
+                retrievedName = Optional.absent();
+            } else {
+                final String instanceId = retrieveInstanceId();
+                final Instance instance = describeInstanceById(instanceId);
+                retrievedName = of(getInstanceName(instance));
+            }
         }
-        final String instanceId = retrieveInstanceId();
-        final Instance instance = describeInstanceById(instanceId);
-        return of(getInstanceName(instance));
+        return retrievedName;
     }
 
     private String getInstanceName(Instance instance) {
