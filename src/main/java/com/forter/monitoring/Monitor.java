@@ -185,6 +185,7 @@ public class Monitor implements EventSender {
                         final long queueTime = Long.valueOf(queueTimeString);
                         final Long startTimeMillis = Long.valueOf(event.customAttributes.get("startTimeMillis"));
                         attributes.put("timeElapsedToStart", Long.toString(startTimeMillis - queueTime));
+                        attributes.put("absoluteLatency", Double.toString(startTimeMillis + event.metric));
                     } catch (NumberFormatException nfe) { /* ignore */ }
                 }
             }
