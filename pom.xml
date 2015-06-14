@@ -3,7 +3,7 @@
   <groupId>com.forter</groupId>
   <artifactId>riemann-storm-monitor</artifactId>
   <packaging>jar</packaging>
-  <version>0.10.12</version>
+  <version>0.10.13</version>
   <properties>
   	<storm.version>0.9.3</storm.version>
   	<storm.topology>com.forter.BrainTopology</storm.topology>
@@ -29,7 +29,7 @@
     <dependency>
       <groupId>com.aphyr</groupId>
       <artifactId>riemann-java-client</artifactId>
-      <version>0.2.10</version>
+      <version>0.3.1</version>
     </dependency>
     <dependency>
      <groupId>org.slf4j</groupId>
