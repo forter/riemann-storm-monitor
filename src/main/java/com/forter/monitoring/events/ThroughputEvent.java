@@ -8,16 +8,6 @@ public class ThroughputEvent extends RiemannEvent {
         this.tags.add("throughput");
     }
 
-    //A function to make sure the metric doesn't change
-    @Override
-    public ThroughputEvent metric(double metric) {
-        if(metric != 1) {
-            throw new IllegalArgumentException("The metric for a throughput event must be 1.");
-        }
-        this.metric = metric;
-        return this;
-    }
-
     @Override
     public ThroughputEvent service(String service) {
         this.service = service + " throughput.";

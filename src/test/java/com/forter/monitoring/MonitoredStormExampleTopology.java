@@ -89,7 +89,6 @@ public class MonitoredStormExampleTopology {
         MonitoredSpout mSpout = new MonitoredSpout(new MockSpout());
         mSpout.setIdName("jobId");
         MonitoredBolt mBolt = new MonitoredBolt(new BasicBoltExecutor(new MockBolt()));
-        mBolt.setMetadataName("metadata");
 
         builder.setSpout("testMockSpout", mSpout, 1);
         builder.setBolt("testMockBolt", mBolt, 1).localOrShuffleGrouping("testMockSpout");
@@ -98,6 +97,9 @@ public class MonitoredStormExampleTopology {
         conf.setDebug(false);
         conf.setMaxSpoutPending(1);
         conf.put("topology.riemann.attributes", "foo=1,bar=baz");
+        conf.put("topology.monitoring.latencies.map.maxSize", 500);
+        conf.put("topology.monitoring.latencies.map.maxTimeSeconds", 120);
+        conf.put("topology.monitoring.latencies.map.maxConcurrency", (int) 4);
         LocalCluster cluster = new LocalCluster();
         cluster.submitTopology("test", conf, builder.createTopology());
 

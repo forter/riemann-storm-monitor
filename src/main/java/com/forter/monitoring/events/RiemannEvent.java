@@ -19,7 +19,8 @@ public class RiemannEvent {
     public Float ttl;
     public List<String> tags;
     public Map<String, String> customAttributes;
-    public Tuple tuple;
+
+    public transient Tuple tuple;
 
     /**
      * Initialize a new RiemannEvent

@@ -3,15 +3,18 @@ package com.forter.monitoring;
 import backtype.storm.task.IOutputCollector;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
+import backtype.storm.topology.FailedException;
 import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.EventsAware;
+import com.forter.monitoring.eventSender.LoggerEventSender;
+import com.forter.monitoring.eventSender.RiemannEventSender;
 import com.forter.monitoring.events.ExceptionEvent;
 import com.forter.monitoring.events.RiemannEvent;
-import com.google.common.base.Optional;
+import com.forter.monitoring.utils.PairKey;
+import com.forter.monitoring.utils.RiemannDiscovery;
 import com.google.common.base.Throwables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,17 +32,30 @@ public class MonitoredBolt implements IRichBolt {
     private transient Logger logger;
     private String boltService;
     private Monitor monitor;
-    protected Optional<String> metadataFieldName;
+    private EventSender injectedEventSender;
 
     private class MonitoredOutputCollector extends OutputCollector {
-
         MonitoredOutputCollector(IOutputCollector delegate) {
             super(delegate);
         }
 
         @Override
         public List<Integer> emit(String streamId, Collection<Tuple> anchors, List<Object> tuple) {
-            return super.emit(streamId, anchors, tuple);
+            if (anchors != null) {
+                for (Tuple t : anchors) {
+                    monitor.startLatency(pair(t), LatencyType.EMIT);
+                }
+            }
+
+            try {
+                return super.emit(streamId, anchors, tuple);
+            } finally {
+                if (anchors != null) {
+                    for (Tuple t : anchors) {
+                        monitor.endLatency(pair(t), LatencyType.EMIT);
+                    }
+                }
+            }
         }
 
         @Override
@@ -49,20 +65,32 @@ public class MonitoredBolt implements IRichBolt {
 
         @Override
         public void ack(Tuple input) {
-            monitor.endLatency(input.getMessageId(), boltService, input, null);
+            if (monitor.shouldMonitor(input)) {
+                monitor.endExecute(pair(input), null, null);
+            }
             super.ack(input);
         }
 
         @Override
         public void fail(Tuple input) {
-            monitor.endLatency(input.getMessageId(), boltService, input, new Throwable(boltService + " failed to process tuple"));
+            if (monitor.shouldMonitor(input)) {
+                monitor.endExecute(pair(input), null, new Throwable(boltService + " failed to process tuple"));
+            }
             super.fail(input);
         }
 
         @Override
         public void reportError(Throwable error) {
-            monitor.send(new ExceptionEvent(error).service(boltService));
-            super.reportError(error);
+            Throwable t = error;
+
+            if (t instanceof FailedException) {
+                while (t instanceof FailedException && t.getCause() != null) {
+                    t = t.getCause();
+                }
+            }
+
+            monitor.send(new ExceptionEvent(t).service(boltService));
+            super.reportError(t);
         }
     }
 
@@ -81,8 +109,19 @@ public class MonitoredBolt implements IRichBolt {
         try {
             boltService = context.getThisComponentId();
             logger = LoggerFactory.getLogger(boltService);
-            monitor = new Monitor(conf, metadataFieldName);
+
+            EventSender eventSender;
+            if (injectedEventSender != null) {
+                eventSender = injectedEventSender;
+            } else if (RiemannDiscovery.getInstance().isAWS() && !RiemannDiscovery.getInstance().isJenkins()) {
+                eventSender = RiemannEventSender.getInstance();
+            } else {
+                //fallback for local mode
+                eventSender = new LoggerEventSender();
+            }
+            monitor = new Monitor(conf, boltService, eventSender);
             injectEventSender(delegate, monitor);
+
             delegate.prepare(conf, context, new MonitoredOutputCollector(collector));
         } catch(Throwable t) {
             logger.warn("Error during bolt prepare : ", t);
@@ -92,15 +131,16 @@ public class MonitoredBolt implements IRichBolt {
 
     @Override
     public void execute(Tuple tuple) {
-        logger.trace("Entered execute with tuple : ", tuple);
-        monitor.startLatency(tuple.getMessageId());
-        try {
-            delegate.execute(tuple);
-            logger.trace("Finished execution with tuple : ", tuple);
-        } catch(Throwable t) {
-            logger.info("Error during bolt execute : ", t);
-            throw Throwables.propagate(t);
+        logger.trace("Entered execute with tuple: ", tuple);
+        if (monitor.shouldMonitor(tuple)) {
+            monitor.startExecute(pair(tuple), tuple, this.boltService);
         }
+        delegate.execute(tuple);
+        logger.trace("Finished execution with tuple: ", tuple);
+    }
+
+    private PairKey pair(Tuple tuple) {
+        return new PairKey(this, tuple);
     }
 
     @Override
@@ -127,13 +167,8 @@ public class MonitoredBolt implements IRichBolt {
         monitor.send(event);
     }
 
-    /**
-     * Sets the metadata field name in the tuple. The metadata contains various data that needs to be
-     * reported to riemann on a per event basis.
-     * @param metadataFieldName the field name to be set
-     */
-    public void setMetadataName(String metadataFieldName) {
-        this.metadataFieldName = Optional.of(metadataFieldName);
+    public void setInjectedEventSender(EventSender injectedEventSender) {
+        this.injectedEventSender = injectedEventSender;
     }
 }
 
