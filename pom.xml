@@ -129,6 +129,18 @@
     </profiles>
     <repositories>
         <repository>
+            <id>forter-public</id>
+            <name>forter public</name>
+            <url>http://oss.forter.com/repository</url>
+            <releases>
+                <checksumPolicy>fail</checksumPolicy>
+            </releases>
+            <snapshots>
+                <checksumPolicy>fail</checksumPolicy>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+        <repository>
             <id>clojars.org</id>
             <url>http://clojars.org/repo</url>
         </repository>
