@@ -28,9 +28,9 @@
       <version>1.8.2</version>
     </dependency>
     <dependency>
-      <groupId>com.aphyr</groupId>
+      <groupId>com.forter</groupId>
       <artifactId>riemann-java-client</artifactId>
-      <version>0.2.10</version>
+      <version>0.2.12</version>
     </dependency>
     <dependency>
      <groupId>org.slf4j</groupId>
@@ -134,6 +134,18 @@
         </profile>
     </profiles>
     <repositories>
+        <repository>
+            <id>forter-public</id>
+            <name>forter public</name>
+            <url>http://oss.forter.com/repository</url>
+            <releases>
+                <checksumPolicy>fail</checksumPolicy>
+            </releases>
+            <snapshots>
+                <checksumPolicy>fail</checksumPolicy>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
         <repository>
             <id>clojars.org</id>
             <url>http://clojars.org/repo</url>
