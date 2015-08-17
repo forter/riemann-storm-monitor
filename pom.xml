@@ -3,7 +3,7 @@
   <groupId>com.forter</groupId>
   <artifactId>riemann-storm-monitor</artifactId>
   <packaging>jar</packaging>
-  <version>0.10.17</version>
+  <version>0.10.18</version>
   <properties>
   	<storm.version>0.9.3</storm.version>
   	<storm.topology>com.forter.BrainTopology</storm.topology>
