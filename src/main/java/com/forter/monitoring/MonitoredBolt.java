@@ -29,6 +29,7 @@ public class MonitoredBolt implements IRichBolt {
     private transient Logger logger;
     private String boltService;
     private Monitor monitor;
+    private TupleAwareEventSender tupleAwareEventSender;
     private TupleAwareEventSender injectedEventSender;
 
     private class MonitoredOutputCollector extends OutputCollector {
@@ -97,7 +98,7 @@ public class MonitoredBolt implements IRichBolt {
 
     private static void injectEventSender(IRichBolt delegate, EventSender eventSender) {
         if(delegate instanceof EventsAware) {
-            ((EventsAware) delegate).setEventSender(eventSender);
+            ((EventsAware) delegate).setEventSender(new TupleAwareEventSender(eventSender));
         }
     }
 
@@ -117,7 +118,8 @@ public class MonitoredBolt implements IRichBolt {
                 eventSender = new LoggerEventSender();
             }
             monitor = new Monitor(conf, boltService, eventSender);
-            injectEventSender(delegate, monitor);
+            tupleAwareEventSender = new TupleAwareEventSender(monitor);
+            injectEventSender(delegate, tupleAwareEventSender);
 
             delegate.prepare(conf, context, new MonitoredOutputCollector(collector));
         } catch(Throwable t) {
@@ -132,13 +134,9 @@ public class MonitoredBolt implements IRichBolt {
         if (monitor.shouldMonitor(tuple)) {
             monitor.startExecute(pair(tuple), tuple, this.boltService);
         }
-        if (injectedEventSender != null) {
-            injectedEventSender.setCurrentTuple(tuple);
-        }
+        tupleAwareEventSender.setCurrentTuple(tuple);
         delegate.execute(tuple);
-        if (injectedEventSender != null) {
-            injectedEventSender.setCurrentTuple(null);
-        }
+        tupleAwareEventSender.setCurrentTuple(null);
         logger.trace("Finished execution with tuple: ", tuple);
     }
 
