@@ -7,7 +7,7 @@ import lombok.Setter;
 public class TupleAwareEventSender implements EventSender{
     private EventSender delegate;
     @Setter
-    private Tuple currentTuple;
+    private transient Tuple currentTuple;
 
     public TupleAwareEventSender(EventSender delegate) {
         this.delegate = delegate;
