@@ -7,10 +7,7 @@ import backtype.storm.topology.FailedException;
 import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
-import com.forter.monitoring.eventSender.EventSender;
-import com.forter.monitoring.eventSender.EventsAware;
-import com.forter.monitoring.eventSender.LoggerEventSender;
-import com.forter.monitoring.eventSender.RiemannEventSender;
+import com.forter.monitoring.eventSender.*;
 import com.forter.monitoring.events.ExceptionEvent;
 import com.forter.monitoring.events.RiemannEvent;
 import com.forter.monitoring.utils.PairKey;
@@ -32,7 +29,7 @@ public class MonitoredBolt implements IRichBolt {
     private transient Logger logger;
     private String boltService;
     private Monitor monitor;
-    private EventSender injectedEventSender;
+    private TupleAwareEventSender injectedEventSender;
 
     private class MonitoredOutputCollector extends OutputCollector {
         MonitoredOutputCollector(IOutputCollector delegate) {
@@ -135,7 +132,13 @@ public class MonitoredBolt implements IRichBolt {
         if (monitor.shouldMonitor(tuple)) {
             monitor.startExecute(pair(tuple), tuple, this.boltService);
         }
+        if (injectedEventSender != null) {
+            injectedEventSender.setCurrentTuple(tuple);
+        }
         delegate.execute(tuple);
+        if (injectedEventSender != null) {
+            injectedEventSender.setCurrentTuple(null);
+        }
         logger.trace("Finished execution with tuple: ", tuple);
     }
 
@@ -168,7 +171,7 @@ public class MonitoredBolt implements IRichBolt {
     }
 
     public void setInjectedEventSender(EventSender injectedEventSender) {
-        this.injectedEventSender = injectedEventSender;
+        this.injectedEventSender = new TupleAwareEventSender(injectedEventSender);
     }
 }
 
