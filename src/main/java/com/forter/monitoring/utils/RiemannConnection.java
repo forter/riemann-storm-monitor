@@ -43,8 +43,15 @@ public class RiemannConnection {
     }
 
     private String getRiemannIP() throws IOException {
-        String machinePrefix = (machineName.startsWith("prod") ? "prod" : "develop");
-        return (Iterables.get(RiemannDiscovery.getInstance().describeInstancesByName(machinePrefix + "-riemann-instance"), 0)).getPrivateIpAddress();
+        final String riemannMachineName;
+        if (machineName.startsWith("prod-vt")) {
+            riemannMachineName = "prod-vtriemann-instance";
+        } else if (machineName.startsWith("prod")) {
+            riemannMachineName = "prod-riemann-instance";
+        } else {
+            riemannMachineName = "develop-riemann-instance";
+        }
+        return (Iterables.get(RiemannDiscovery.getInstance().describeInstancesByName(riemannMachineName), 0)).getPrivateIpAddress();
     }
 
     public RiemannClient getClient() {
