@@ -30,7 +30,7 @@ public class MonitoredBolt implements IRichBolt {
     private String boltService;
     private Monitor monitor;
     private TupleAwareEventSender tupleAwareEventSender;
-    private TupleAwareEventSender injectedEventSender;
+    private EventSender injectedEventSender;
 
     private class MonitoredOutputCollector extends OutputCollector {
         MonitoredOutputCollector(IOutputCollector delegate) {
@@ -98,7 +98,7 @@ public class MonitoredBolt implements IRichBolt {
 
     private static void injectEventSender(IRichBolt delegate, EventSender eventSender) {
         if(delegate instanceof EventsAware) {
-            ((EventsAware) delegate).setEventSender(new TupleAwareEventSender(eventSender));
+            ((EventsAware) delegate).setEventSender(eventSender);
         }
     }
 
@@ -169,7 +169,7 @@ public class MonitoredBolt implements IRichBolt {
     }
 
     public void setInjectedEventSender(EventSender injectedEventSender) {
-        this.injectedEventSender = new TupleAwareEventSender(injectedEventSender);
+        this.injectedEventSender = injectedEventSender;
     }
 }
 
