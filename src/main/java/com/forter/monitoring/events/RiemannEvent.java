@@ -6,6 +6,7 @@ import com.google.common.collect.Maps;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -70,7 +71,7 @@ public class RiemannEvent {
         return this;
     }
 
-    public RiemannEvent tags(List<String> tags) {
+    public RiemannEvent tags(Collection<String> tags) {
         if(tags != null) {
             this.tags.addAll(tags);
         }

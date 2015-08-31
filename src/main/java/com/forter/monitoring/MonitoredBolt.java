@@ -1,14 +1,11 @@
 package com.forter.monitoring;
 
-import backtype.storm.task.IOutputCollector;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.FailedException;
 import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import com.forter.monitoring.eventSender.*;
-import com.forter.monitoring.events.ExceptionEvent;
 import com.forter.monitoring.events.RiemannEvent;
 import com.forter.monitoring.utils.PairKey;
 import com.forter.monitoring.utils.RiemannDiscovery;
@@ -16,8 +13,6 @@ import com.google.common.base.Throwables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 
 /*
@@ -26,74 +21,23 @@ import java.util.Map;
 */
 public class MonitoredBolt implements IRichBolt {
     private final IRichBolt delegate;
+    private final CustomLatencyAttributesGenerator customAttributesGenerator;
+
+    private EventSender injectedEventSender; // non transient, being set before prepare.
+
+    transient String boltService;
+    transient Monitor monitor;
+
+    private transient TupleAwareEventSender tupleAwareEventSender;
     private transient Logger logger;
-    private String boltService;
-    private Monitor monitor;
-    private TupleAwareEventSender tupleAwareEventSender;
-    private EventSender injectedEventSender;
-
-    private class MonitoredOutputCollector extends OutputCollector {
-        MonitoredOutputCollector(IOutputCollector delegate) {
-            super(delegate);
-        }
-
-        @Override
-        public List<Integer> emit(String streamId, Collection<Tuple> anchors, List<Object> tuple) {
-            if (anchors != null) {
-                for (Tuple t : anchors) {
-                    monitor.startLatency(pair(t), LatencyType.EMIT);
-                }
-            }
-
-            try {
-                return super.emit(streamId, anchors, tuple);
-            } finally {
-                if (anchors != null) {
-                    for (Tuple t : anchors) {
-                        monitor.endLatency(pair(t), LatencyType.EMIT);
-                    }
-                }
-            }
-        }
-
-        @Override
-        public void emitDirect(int taskId, String streamId, Collection<Tuple> anchors, List<Object> tuple) {
-            super.emitDirect(taskId, streamId, anchors, tuple);
-        }
-
-        @Override
-        public void ack(Tuple input) {
-            if (monitor.shouldMonitor(input)) {
-                monitor.endExecute(pair(input), null, null);
-            }
-            super.ack(input);
-        }
-
-        @Override
-        public void fail(Tuple input) {
-            if (monitor.shouldMonitor(input)) {
-                monitor.endExecute(pair(input), null, new Throwable(boltService + " failed to process tuple"));
-            }
-            super.fail(input);
-        }
-
-        @Override
-        public void reportError(Throwable error) {
-            Throwable t = error;
-
-            if (t instanceof FailedException) {
-                while (t instanceof FailedException && t.getCause() != null) {
-                    t = t.getCause();
-                }
-            }
-
-            monitor.send(new ExceptionEvent(t).service(boltService));
-            super.reportError(t);
-        }
-    }
 
     public MonitoredBolt(IRichBolt delegate) {
+        this(delegate, null);
+    }
+
+    public MonitoredBolt(IRichBolt delegate, CustomLatencyAttributesGenerator customAttributesGenerator) {
         this.delegate = delegate;
+        this.customAttributesGenerator = customAttributesGenerator;
     }
 
     private static void injectEventSender(IRichBolt delegate, EventSender eventSender) {
@@ -121,7 +65,7 @@ public class MonitoredBolt implements IRichBolt {
             tupleAwareEventSender = new TupleAwareEventSender(monitor);
             injectEventSender(delegate, tupleAwareEventSender);
 
-            delegate.prepare(conf, context, new MonitoredOutputCollector(collector));
+            delegate.prepare(conf, context, new MonitoredOutputCollector(this, collector));
         } catch(Throwable t) {
             logger.warn("Error during bolt prepare : ", t);
             throw Throwables.propagate(t);
@@ -170,6 +114,10 @@ public class MonitoredBolt implements IRichBolt {
 
     public void setInjectedEventSender(EventSender injectedEventSender) {
         this.injectedEventSender = injectedEventSender;
+    }
+
+    public CustomLatencyAttributesGenerator getCustomLatencyAttributesGenerator() {
+        return customAttributesGenerator;
     }
 }
 
