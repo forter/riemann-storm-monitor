@@ -153,7 +153,7 @@ public class Monitor implements EventSender {
         registerLatency(latencyId, LatencyType.EXECUTE, true, service, tuple, null, null);
     }
 
-    public void endExecute(Object latencyId, Map<String, String> attributes, Throwable er) {
+    public void endExecute(Object latencyId, EventProperties attributes, Throwable er) {
         registerLatency(latencyId, LatencyType.EXECUTE, false, null, null, attributes, er);
     }
 
@@ -201,7 +201,7 @@ public class Monitor implements EventSender {
     }
 
     private void registerLatency(Object latencyId, LatencyType type, boolean isStart, String service, Tuple tuple,
-                                    Map<String, String> attributes, Throwable er) {
+                                 EventProperties properties, Throwable er) {
         final long nanos = System.nanoTime();
         Latencies latencies;
         synchronized (cacheLock) {
@@ -233,8 +233,13 @@ public class Monitor implements EventSender {
                                 event.tuple(latencies.getTuple());
                             }
 
-                            if (attributes != null) {
-                                event.attributes(attributes);
+                            if (properties != null) {
+                                if (properties.getAttributes() != null) {
+                                    event.attributes(properties.getAttributes());
+                                }
+                                if (properties.getTags() != null) {
+                                    event.tags(properties.getTags());
+                                }
                             }
 
                             event.attribute("startTime", startTime);

@@ -95,9 +95,9 @@ public class MonitoredSpout implements IRichSpout {
     @Override
     public void ack(Object id) {
         if(idName.isPresent()) {
-            Map<String, String> attributes = Maps.newHashMap();
-            attributes.put(idName.get(), String.valueOf(id));
-            monitor.endExecute(id, attributes, null);
+            EventProperties props = new EventProperties();
+            props.getAttributes().put(idName.get(), String.valueOf(id));
+            monitor.endExecute(id, props, null);
         } else {
             monitor.endExecute(id, null, null);
         }
@@ -113,10 +113,9 @@ public class MonitoredSpout implements IRichSpout {
     @Override
     public void fail(Object id) {
         if(idName.isPresent()) {
-            Map<String, String> attributes = Maps.newHashMap();
-            attributes.put(idName.get(), String.valueOf(id));
-
-            monitor.endExecute(id, attributes, new Throwable("Storm failed."));
+            EventProperties props = new EventProperties();
+            props.getAttributes().put(idName.get(), String.valueOf(id));
+            monitor.endExecute(id, props, new Throwable("Storm failed."));
         } else {
             monitor.endExecute(id, null, new Throwable("Storm failed."));
         }
