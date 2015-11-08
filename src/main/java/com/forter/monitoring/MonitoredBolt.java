@@ -26,7 +26,7 @@ public class MonitoredBolt implements IRichBolt {
     private EventSender injectedEventSender; // non transient, being set before prepare.
 
     transient String boltService;
-    transient Monitor monitor;
+    private transient Monitor monitor;
 
     private transient TupleAwareEventSender tupleAwareEventSender;
     private transient Logger logger;
@@ -118,6 +118,10 @@ public class MonitoredBolt implements IRichBolt {
 
     public CustomLatencyAttributesGenerator getCustomLatencyAttributesGenerator() {
         return customAttributesGenerator;
+    }
+
+    public Monitor getMonitor() {
+        return monitor;
     }
 }
 

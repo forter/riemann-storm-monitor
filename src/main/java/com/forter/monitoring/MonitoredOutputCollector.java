@@ -17,7 +17,7 @@ public class MonitoredOutputCollector extends OutputCollector {
     MonitoredOutputCollector(MonitoredBolt monitoredBolt, IOutputCollector delegate) {
         super(delegate);
         this.monitoredBolt = monitoredBolt;
-        this.monitor = monitoredBolt.monitor;
+        this.monitor = monitoredBolt.getMonitor();
     }
 
     @Override
