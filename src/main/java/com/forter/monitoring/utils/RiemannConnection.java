@@ -23,10 +23,19 @@ public class RiemannConnection {
         this.machineName = machineName;
     }
 
+    public enum RiemannType {
+        DEFAULT,
+        JS
+    }
+
     public void connect() {
+        this.connect(RiemannType.DEFAULT);
+    }
+
+    public void connect(RiemannType requested_type) {
         if (client == null) {
             try {
-                riemannIP = getRiemannIP();
+                riemannIP = getRiemannIP(requested_type);
                 client = RiemannClient.tcp(riemannIP, riemannPort);
             }
             catch (IOException e) {
@@ -42,13 +51,28 @@ public class RiemannConnection {
         }
     }
 
+
     private String getRiemannIP() throws IOException {
+        return this.getRiemannIP(RiemannType.DEFAULT);
+    }
+
+    private String getRiemannIP(RiemannType riemann_type) throws IOException {
         final String riemannMachineName;
-        if (machineName.startsWith("prod-vt")) {
-            riemannMachineName = "prod-vtriemann-instance";
-        } else if (machineName.startsWith("prod")) {
-            riemannMachineName = "prod-riemann-instance";
-        } else {
+        final boolean isProd = machineName.startsWith("prod");
+        final boolean isProdVT = machineName.startsWith("prod-vt");
+
+        if (isProd) {
+            if (riemann_type == RiemannType.JS) {
+                riemannMachineName = "prod-riemannjs-instance";
+            }
+            else if (isProdVT) {
+                riemannMachineName = "prod-vtriemann-instance";
+            }
+            else {
+                riemannMachineName = "prod-riemann-instance";
+            }
+        }
+        else {
             riemannMachineName = "develop-riemann-instance";
         }
         return (Iterables.get(RiemannDiscovery.getInstance().describeInstancesByName(riemannMachineName), 0)).getPrivateIpAddress();

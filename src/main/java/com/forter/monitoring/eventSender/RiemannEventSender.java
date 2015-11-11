@@ -2,6 +2,7 @@ package com.forter.monitoring.eventSender;
 import com.aphyr.riemann.client.EventDSL;
 import com.forter.monitoring.events.RiemannEvent;
 import com.forter.monitoring.utils.RiemannConnection;
+import com.forter.monitoring.utils.RiemannConnection.RiemannType;
 
 import com.aphyr.riemann.client.RiemannClient;
 import com.forter.monitoring.utils.RiemannDiscovery;
@@ -20,18 +21,32 @@ public class RiemannEventSender implements EventSender {
     // A temporary field for the v0.8.6.1 fix. will be removed later.
     private final float DEFAULT_TTL_SEC = 5f;
 
+
+
     private static class SingletonHolder {
-        private static final RiemannEventSender INSTANCE = new RiemannEventSender();
+        private static final RiemannEventSender RIEMANN_INSTANCE = new RiemannEventSender(RiemannType.DEFAULT);
+        private static final RiemannEventSender RIEMANNJS_INSTANCE = new RiemannEventSender(RiemannType.JS);
     }
 
     public static RiemannEventSender getInstance() {
-        return SingletonHolder.INSTANCE;
+        return RiemannEventSender.getInstance(RiemannType.DEFAULT);
+    }
+
+    public static RiemannEventSender getInstance(RiemannType instance_type) {
+        switch (instance_type) {
+            case JS: return SingletonHolder.RIEMANNJS_INSTANCE;
+            default: return SingletonHolder.RIEMANN_INSTANCE;
+        }
     }
 
     private RiemannEventSender() {
+        this(RiemannType.DEFAULT);
+    }
+
+    private RiemannEventSender(RiemannType instance_type) {
         this.machineName = retrieveMachineName();
         this.connection = new RiemannConnection(machineName);
-        connection.connect();
+        connection.connect(instance_type);
     }
 
     private String retrieveMachineName() {
