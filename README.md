@@ -1,8 +1,7 @@
 #riemann-storm-monitor
 ==========
 
-The riemann-storm-monitor is a library that acts as a riemann agent.
-The library supplies various tools meant for monitoring of storm topologies.
+`riemann-storm-monitor` is a library that acts as a riemann agent. This library supplies various useful tools for monitoring of storm topologies.
 
 
 ## Usage ##
@@ -28,17 +27,18 @@ The riemann-storm-monitor supplies various monitoring tools -
 * **Events and Functions Throughput measuring** - the usage of this feature requires the user's bolt/spout classes to implement the interface "EventsAware".
   The implementation is as such - 
   ```java
-  public class MockSpout implements EventsAware{
-        private EventSender es;
-
-        @Override
-        public void setEventSender(EventSender es) {
-            this.es = es;
-        }
-        ...
-        private foo() {
-          es.sendEvent("sent each time foo is called","foo called",1,"mytag1","mytag2");
-        }
+  public class MockSpout implements EventsAware {
+    private EventSender es;
+    
+    @Override
+    public void setEventSender(EventSender es) {
+        this.es = es;
+    }
+    ...
+    private foo() {
+      es.sendEvent("sent each time foo is called","foo called",1,"mytag1","mytag2");
+    }
+  }
   ```
 
 * **IEvenSender events (from [EventSender.java](src/main/java/com/forter/monitoring/EventSender.java))
