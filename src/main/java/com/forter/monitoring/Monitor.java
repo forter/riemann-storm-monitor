@@ -271,7 +271,7 @@ public class Monitor implements EventSender {
                             }
                         } else {
                             if (!extraAckReportingExclusions.contains(this.boltService)) {
-                                send(new ExceptionEvent("Latency monitor doesn't recognize key.").service(service));
+                                send(new ExceptionEvent("Latency monitor doesn't recognize key.").service(service).attribute("key", latencyId.toString()));
                                 if (er == null) {
                                     logger.warn("Latency monitor doesn't recognize key {}.", latencyId);
                                 } else {
