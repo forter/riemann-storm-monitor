@@ -3,7 +3,7 @@ package com.forter.monitoring.events;
 import backtype.storm.tuple.Tuple;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.apache.commons.lang.builder.ToStringBuilder;
+import org.apache.storm.shade.org.apache.commons.lang.builder.ToStringBuilder;
 
 import java.util.Arrays;
 import java.util.Collection;
