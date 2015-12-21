@@ -5,13 +5,9 @@ import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.EventsAware;
-import com.forter.monitoring.eventSender.LoggerEventSender;
-import com.forter.monitoring.eventSender.RiemannEventSender;
 import com.forter.monitoring.events.RiemannEvent;
-import com.forter.monitoring.utils.RiemannDiscovery;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +20,7 @@ This class creates a monitored wrapper around other spout classes.
 The usage is -
 MonitoredSpout ms = new MonitoredSpout(new SpoutToMonitor());
 */
-public class MonitoredSpout implements IRichSpout {
+public abstract class MonitoredSpout implements IRichSpout {
     private final IRichSpout delegate;
     private transient Logger logger;
     private String spoutService;
@@ -41,18 +37,15 @@ public class MonitoredSpout implements IRichSpout {
         }
     }
 
+    protected abstract EventSender getEventSender();
+
     @Override
     public void open(Map conf, final TopologyContext context, SpoutOutputCollector collector) {
         logger = LoggerFactory.getLogger(delegate.getClass());
         spoutService = context.getThisComponentId();
 
-        EventSender eventSender;
-        if (RiemannDiscovery.getInstance().isAWS()) {
-            eventSender = RiemannEventSender.getInstance();
-        } else {
-            //fallback for local mode
-            eventSender = new LoggerEventSender();
-        }
+        EventSender eventSender = getEventSender();
+
         monitor = new Monitor(conf, spoutService, eventSender);
 
         injectEventSender(delegate, monitor);

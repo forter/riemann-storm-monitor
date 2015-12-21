@@ -19,11 +19,9 @@ import java.util.Map;
 * This class creates a monitored wrapper around other bolt classes to measure the time from execution till ack/fail.
 * Currently ignores emit timings.
 */
-public class MonitoredBolt implements IRichBolt {
+public abstract class MonitoredBolt implements IRichBolt {
     private final IRichBolt delegate;
     private final CustomLatencyAttributesGenerator customAttributesGenerator;
-
-    private EventSender injectedEventSender; // non transient, being set before prepare.
 
     transient String boltService;
     private transient Monitor monitor;
@@ -40,30 +38,15 @@ public class MonitoredBolt implements IRichBolt {
         this.customAttributesGenerator = customAttributesGenerator;
     }
 
-    private static void injectEventSender(IRichBolt delegate, EventSender eventSender) {
-        if(delegate instanceof EventsAware) {
-            ((EventsAware) delegate).setEventSender(eventSender);
-        }
-    }
-
     @Override
     public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
         try {
             boltService = context.getThisComponentId();
             logger = LoggerFactory.getLogger(boltService);
 
-            EventSender eventSender;
-            if (injectedEventSender != null) {
-                eventSender = injectedEventSender;
-            } else if (RiemannDiscovery.getInstance().isAWS() && !RiemannDiscovery.getInstance().isJenkins()) {
-                eventSender = RiemannEventSender.getInstance();
-            } else {
-                //fallback for local mode
-                eventSender = new LoggerEventSender();
-            }
+            EventSender eventSender = getEventSender();
             monitor = new Monitor(conf, boltService, eventSender);
             tupleAwareEventSender = new TupleAwareEventSender(monitor);
-            injectEventSender(delegate, tupleAwareEventSender);
 
             delegate.prepare(conf, context, new MonitoredOutputCollector(this, collector));
         } catch(Throwable t) {
@@ -71,6 +54,8 @@ public class MonitoredBolt implements IRichBolt {
             throw Throwables.propagate(t);
         }
     }
+
+    protected abstract EventSender getEventSender();
 
     @Override
     public void execute(Tuple tuple) {
@@ -110,10 +95,6 @@ public class MonitoredBolt implements IRichBolt {
 
     public void send(RiemannEvent event) {
         monitor.send(event);
-    }
-
-    public void setInjectedEventSender(EventSender injectedEventSender) {
-        this.injectedEventSender = injectedEventSender;
     }
 
     public CustomLatencyAttributesGenerator getCustomLatencyAttributesGenerator() {

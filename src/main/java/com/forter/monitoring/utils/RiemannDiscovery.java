@@ -6,10 +6,7 @@ import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.*;
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
-import com.google.common.base.Throwables;
+import com.google.common.base.*;
 import com.google.common.collect.Iterables;
 
 import java.io.BufferedReader;
@@ -32,12 +29,29 @@ public class RiemannDiscovery {
     private final Object nameCacheLocker = new Object();
     private Optional<String> retrievedName = null;
 
+    private static class SingletonHolder {
+        private static final RiemannDiscovery INSTANCE = new RiemannDiscovery();
+    }
+
     private RiemannDiscovery() {
         ec2Client = new AmazonEC2Client(new AWSCredentialsProviderChain(new InstanceProfileCredentialsProvider(), new EnvironmentVariableCredentialsProvider()));
     }
 
-    private static class SingletonHolder {
-        private static final RiemannDiscovery INSTANCE = new RiemannDiscovery();
+    public String getRiemannHost() throws IOException {
+        Optional<String> machineNameOpt = retrieveName();
+        Preconditions.checkArgument(machineNameOpt.isPresent());
+        String machineName = machineNameOpt.get();
+
+        final String riemannMachineName;
+        if (machineName.startsWith("prod-vt")) {
+            riemannMachineName = "prod-vtriemann-instance";
+        } else if (machineName.startsWith("prod")) {
+            riemannMachineName = "prod-riemann-instance";
+        } else {
+            riemannMachineName = "develop-riemann-instance";
+        }
+
+        return (Iterables.get(RiemannDiscovery.getInstance().describeInstancesByName(riemannMachineName), 0)).getPrivateIpAddress();
     }
 
     public static RiemannDiscovery getInstance() {
@@ -46,17 +60,6 @@ public class RiemannDiscovery {
 
     public String retrieveInstanceId() throws IOException {
         return retrieveMetadata("instance-id");
-    }
-
-    public boolean isJenkins() {
-        if (!isAWS()) return false;
-        final Optional<String> name;
-        try {
-            name = retrieveName();
-            return name.isPresent() && name.isPresent() && name.get().contains("jenkins");
-        } catch (IOException e) {
-            throw Throwables.propagate(e);
-        }
     }
 
     public String retrieveMetadata(String metadata) throws IOException {

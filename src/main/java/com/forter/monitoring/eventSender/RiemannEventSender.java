@@ -20,18 +20,14 @@ public class RiemannEventSender implements EventSender {
     // A temporary field for the v0.8.6.1 fix. will be removed later.
     private final float DEFAULT_TTL_SEC = 5f;
 
-    private static class SingletonHolder {
-        private static final RiemannEventSender INSTANCE = new RiemannEventSender();
-    }
-
-    public static RiemannEventSender getInstance() {
-        return SingletonHolder.INSTANCE;
-    }
-
-    private RiemannEventSender() {
+    public RiemannEventSender(RiemannConnection riemannConnection) {
         this.machineName = retrieveMachineName();
-        this.connection = new RiemannConnection(machineName);
-        connection.connect();
+        this.connection = riemannConnection;
+        try {
+            this.connection.connect(RiemannDiscovery.getInstance().getRiemannHost());
+        } catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
     }
 
     private String retrieveMachineName() {
@@ -45,8 +41,6 @@ public class RiemannEventSender implements EventSender {
             throw Throwables.propagate(e);
         }
     }
-
-
 
     private com.aphyr.riemann.client.EventDSL createEvent() {
         return connection.getClient().event();

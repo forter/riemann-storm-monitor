@@ -14,19 +14,15 @@ import java.io.IOException;
 * It handles the entire connection process.
 */
 public class RiemannConnection {
-    private final String machineName;
     private String riemannIP;
     private RiemannClient client;
     private Logger logger = LoggerFactory.getLogger(this.getClass());
     private final int riemannPort = 5555;
-    public RiemannConnection(String machineName) {
-        this.machineName = machineName;
-    }
 
-    public void connect() {
+    public void connect(String ip) {
         if (client == null) {
             try {
-                riemannIP = getRiemannIP();
+                riemannIP = ip;
                 client = RiemannClient.tcp(riemannIP, riemannPort);
             }
             catch (IOException e) {
@@ -42,20 +38,7 @@ public class RiemannConnection {
         }
     }
 
-    private String getRiemannIP() throws IOException {
-        final String riemannMachineName;
-        if (machineName.startsWith("prod-vt")) {
-            riemannMachineName = "prod-vtriemann-instance";
-        } else if (machineName.startsWith("prod")) {
-            riemannMachineName = "prod-riemann-instance";
-        } else {
-            riemannMachineName = "develop-riemann-instance";
-        }
-        return (Iterables.get(RiemannDiscovery.getInstance().describeInstancesByName(riemannMachineName), 0)).getPrivateIpAddress();
-    }
-
     public RiemannClient getClient() {
         return client;
     }
-
-};
+}

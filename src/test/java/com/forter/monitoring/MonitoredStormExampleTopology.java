@@ -86,9 +86,9 @@ public class MonitoredStormExampleTopology {
     public static void main(String[] args) throws Exception {
         TopologyBuilder builder = new TopologyBuilder();
 
-        MonitoredSpout mSpout = new MonitoredSpout(new MockSpout());
+        MonitoredSpout mSpout = new DefaultMonitoredSpout(new MockSpout());
         mSpout.setIdName("jobId");
-        MonitoredBolt mBolt = new MonitoredBolt(new BasicBoltExecutor(new MockBolt()));
+        MonitoredBolt mBolt = new DefaultMonitoredBolt(new BasicBoltExecutor(new MockBolt()));
 
         builder.setSpout("testMockSpout", mSpout, 1);
         builder.setBolt("testMockBolt", mBolt, 1).localOrShuffleGrouping("testMockSpout");
