@@ -49,6 +49,7 @@ public abstract class MonitoredSpout implements IRichSpout {
         monitor = new Monitor(conf, spoutService, eventSender);
 
         injectEventSender(delegate, monitor);
+
         try {
             delegate.open(conf, context, new SpoutOutputCollector(collector) {
                 @Override

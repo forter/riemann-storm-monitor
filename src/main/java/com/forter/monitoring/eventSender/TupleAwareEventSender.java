@@ -4,9 +4,8 @@ import backtype.storm.tuple.Tuple;
 import com.forter.monitoring.events.RiemannEvent;
 import lombok.Setter;
 
-public class TupleAwareEventSender implements EventSender{
+public class TupleAwareEventSender implements EventSender {
     private EventSender delegate;
-    @Setter
     private transient Tuple currentTuple;
 
     public TupleAwareEventSender(EventSender delegate) {
@@ -17,5 +16,9 @@ public class TupleAwareEventSender implements EventSender{
     public void send(RiemannEvent event) {
         event.tuple(currentTuple);
         delegate.send(event);
+    }
+
+    public void setCurrentTuple(Tuple currentTuple) {
+        this.currentTuple = currentTuple;
     }
 }

@@ -48,6 +48,10 @@ public abstract class MonitoredBolt implements IRichBolt {
             monitor = new Monitor(conf, boltService, eventSender);
             tupleAwareEventSender = new TupleAwareEventSender(monitor);
 
+            if(delegate instanceof EventsAware) {
+                ((EventsAware) delegate).setEventSender(eventSender);
+            }
+
             delegate.prepare(conf, context, new MonitoredOutputCollector(this, collector));
         } catch(Throwable t) {
             logger.warn("Error during bolt prepare : ", t);
