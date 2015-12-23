@@ -2,7 +2,10 @@ package com.forter.monitoring.eventSender;
 
 import backtype.storm.tuple.Tuple;
 import com.forter.monitoring.events.RiemannEvent;
+import com.google.common.collect.Maps;
 import lombok.Setter;
+
+import java.util.HashMap;
 
 public class TupleAwareEventSender implements EventSender {
     private EventSender delegate;
@@ -14,7 +17,22 @@ public class TupleAwareEventSender implements EventSender {
 
     @Override
     public void send(RiemannEvent event) {
-        event.tuple(currentTuple);
+        if (currentTuple != null) {
+            HashMap<String, String> attributes = Maps.newHashMap();
+
+            for (String field : currentTuple.getFields()) {
+                if (field.startsWith("_")) {
+                    attributes.put(field.substring(1), String.valueOf(currentTuple.getValueByField(field)));
+                }
+            }
+
+            event.tuple(currentTuple);
+
+            if (!attributes.isEmpty()) {
+                event.attributes(attributes);
+            }
+        }
+
         delegate.send(event);
     }
 

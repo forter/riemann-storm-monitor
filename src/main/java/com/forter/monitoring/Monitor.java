@@ -172,12 +172,6 @@ public class Monitor implements EventSender {
         if (event.tuple != null) {
             HashMap<String, String> attributes = Maps.newHashMap();
 
-            for (String field : event.tuple.getFields()) {
-                if (field.startsWith("_")) {
-                    attributes.put(field.substring(1), String.valueOf(event.tuple.getValueByField(field)));
-                }
-            }
-
             if (event.tuple.contains("_queueTime") && event.customAttributes.containsKey("startTimeMillis")) {
                 final String queueTimeString = event.tuple.getValueByField("_queueTime").toString();
                 if (!queueTimeString.equals("unknown")) {

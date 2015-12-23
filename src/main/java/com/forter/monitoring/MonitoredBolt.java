@@ -26,7 +26,6 @@ public abstract class MonitoredBolt implements IRichBolt {
     transient String boltService;
     private transient Monitor monitor;
 
-    private transient TupleAwareEventSender tupleAwareEventSender;
     private transient Logger logger;
 
     public MonitoredBolt(IRichBolt delegate) {
@@ -46,7 +45,6 @@ public abstract class MonitoredBolt implements IRichBolt {
 
             EventSender eventSender = getEventSender();
             monitor = new Monitor(conf, boltService, eventSender);
-            tupleAwareEventSender = new TupleAwareEventSender(monitor);
 
             if(delegate instanceof EventsAware) {
                 ((EventsAware) delegate).setEventSender(eventSender);
@@ -67,9 +65,7 @@ public abstract class MonitoredBolt implements IRichBolt {
         if (monitor.shouldMonitor(tuple)) {
             monitor.startExecute(pair(tuple), tuple, this.boltService);
         }
-        tupleAwareEventSender.setCurrentTuple(tuple);
         delegate.execute(tuple);
-        tupleAwareEventSender.setCurrentTuple(null);
         logger.trace("Finished execution with tuple: ", tuple);
     }
 
