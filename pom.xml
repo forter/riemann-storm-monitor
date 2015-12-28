@@ -4,12 +4,12 @@
     <groupId>com.forter</groupId>
     <artifactId>riemann-storm-monitor</artifactId>
     <packaging>jar</packaging>
-    <version>0.10.29</version>
+    <version>0.10.30</version>
     <properties>
         <storm.version>0.10.0</storm.version>
         <storm.topology>com.forter.BrainTopology</storm.topology>
-        <slf4j.version>1.7.7</slf4j.version>
-        <logback.version>1.1.2</logback.version>
+        <slf4j.version>1.7.13</slf4j.version>
+        <log4j.version>2.1</log4j.version>
         <lombok.version>1.16.2</lombok.version>
     </properties>
     <dependencies>
@@ -29,26 +29,31 @@
             <version>1.8.2</version>
         </dependency>
         <dependency>
-            <groupId>com.forter</groupId>
+            <groupId>com.forter.com.aphyr</groupId>
             <artifactId>riemann-java-client</artifactId>
-            <version>0.2.12</version>
+            <version>0.2.13</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>
         </dependency>
+        <!-- Binding for Log4j2 (log4j -> logback -> *log4j2*) -->
         <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>${logback.version}</version>
-            <scope>test</scope>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j-impl</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
+        <!-- Log4j2 API and Core implementation required for binding -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>${log4j.version}</version>
         </dependency>
         <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-core</artifactId>
-            <version>${logback.version}</version>
-            <scope>test</scope>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>${log4j.version}</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
