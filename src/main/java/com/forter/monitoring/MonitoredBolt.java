@@ -8,7 +8,6 @@ import backtype.storm.tuple.Tuple;
 import com.forter.monitoring.eventSender.*;
 import com.forter.monitoring.events.RiemannEvent;
 import com.forter.monitoring.utils.PairKey;
-import com.forter.monitoring.utils.RiemannDiscovery;
 import com.google.common.base.Throwables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,12 +60,20 @@ public abstract class MonitoredBolt implements IRichBolt {
 
     @Override
     public void execute(Tuple tuple) {
-        logger.trace("Entered execute with tuple: ", tuple);
-        if (monitor.shouldMonitor(tuple)) {
-            monitor.startExecute(pair(tuple), tuple, this.boltService);
+        try {
+            logger.trace("Entered execute with tuple: ", tuple);
+            if (monitor.shouldMonitor(tuple)) {
+                if (delegate instanceof IgnoreLatencyComponent) {
+                    if (!((IgnoreLatencyComponent) delegate).shouldMonitorLatency(tuple)) {
+                        return;
+                    }
+                }
+                monitor.startExecute(pair(tuple), tuple, this.boltService);
+            }
+        } finally {
+            delegate.execute(tuple);
+            logger.trace("Finished execution with tuple: ", tuple);
         }
-        delegate.execute(tuple);
-        logger.trace("Finished execution with tuple: ", tuple);
     }
 
     private PairKey pair(Tuple tuple) {
