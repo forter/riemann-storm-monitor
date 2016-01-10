@@ -23,11 +23,6 @@ public class RiemannEventSender implements EventSender {
     public RiemannEventSender(RiemannConnection riemannConnection) {
         this.machineName = retrieveMachineName();
         this.connection = riemannConnection;
-        try {
-            this.connection.connect(RiemannDiscovery.getInstance().getRiemannHost());
-        } catch (IOException e) {
-            throw Throwables.propagate(e);
-        }
     }
 
     private String retrieveMachineName() {
