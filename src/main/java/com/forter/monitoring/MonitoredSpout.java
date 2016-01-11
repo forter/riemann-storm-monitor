@@ -21,11 +21,11 @@ The usage is -
 MonitoredSpout ms = new MonitoredSpout(new SpoutToMonitor());
 */
 public abstract class MonitoredSpout implements IRichSpout {
+    protected Monitor monitor;
     private final IRichSpout delegate;
     private transient Logger logger;
     private String spoutService;
     private Optional<String> idName;
-    private Monitor monitor;
 
     public MonitoredSpout(IRichSpout delegate) {
         this.delegate = delegate;
