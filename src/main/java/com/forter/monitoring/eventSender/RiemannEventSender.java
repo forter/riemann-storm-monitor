@@ -25,7 +25,7 @@ public class RiemannEventSender implements EventSender {
         this.connection = riemannConnection;
     }
 
-    private String retrieveMachineName() {
+    protected String retrieveMachineName() {
         try {
             Optional<String> machineName = RiemannDiscovery.getInstance().retrieveName();
             if (!machineName.isPresent()) {
