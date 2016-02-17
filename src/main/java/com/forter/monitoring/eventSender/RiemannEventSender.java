@@ -60,7 +60,7 @@ public class RiemannEventSender implements EventSender {
                 eventDSL.host(event.host);
             }
 
-            eventDSL.send();
+            getRiemannClient().sendEvents(eventDSL.build());
 
             if (logger.isDebugEnabled()) {
                 logger.debug("Event sent - {}", event);
