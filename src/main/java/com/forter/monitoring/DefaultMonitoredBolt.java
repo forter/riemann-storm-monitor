@@ -13,7 +13,7 @@ public class DefaultMonitoredBolt extends MonitoredBolt {
     }
 
     public DefaultMonitoredBolt(IRichBolt delegate, CustomLatencyAttributesGenerator customAttributesGenerator) {
-        super(delegate, customAttributesGenerator, true);
+        super(delegate, customAttributesGenerator, 1);
     }
 
     @Override

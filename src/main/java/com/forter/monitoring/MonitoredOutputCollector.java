@@ -13,18 +13,22 @@ import java.util.List;
 public class MonitoredOutputCollector extends OutputCollector {
     private final Monitor monitor;
     private final MonitoredBolt monitoredBolt;
+    private final int latencyFraction;
 
-    MonitoredOutputCollector(MonitoredBolt monitoredBolt, IOutputCollector delegate) {
+    MonitoredOutputCollector(MonitoredBolt monitoredBolt, IOutputCollector delegate, int latencyFraction) {
         super(delegate);
         this.monitoredBolt = monitoredBolt;
         this.monitor = monitoredBolt.getMonitor();
+        this.latencyFraction = latencyFraction;
     }
 
     @Override
     public List<Integer> emit(String streamId, Collection<Tuple> anchors, List<Object> tuple) {
         if (anchors != null) {
             for (Tuple t : anchors) {
-                monitor.startLatency(pair(t), LatencyType.EMIT);
+                if (shouldMonitorFraction(t)) {
+                    monitor.startLatency(pair(t), LatencyType.EMIT);
+                }
             }
         }
 
@@ -33,7 +37,9 @@ public class MonitoredOutputCollector extends OutputCollector {
         } finally {
             if (anchors != null) {
                 for (Tuple t : anchors) {
-                    monitor.endLatency(pair(t), LatencyType.EMIT);
+                    if (shouldMonitorFraction(t)) {
+                        monitor.endLatency(pair(t), LatencyType.EMIT);
+                    }
                 }
             }
         }
@@ -46,7 +52,7 @@ public class MonitoredOutputCollector extends OutputCollector {
 
     @Override
     public void ack(Tuple input) {
-        if (monitor.shouldMonitor(input)) {
+        if (shouldMonitorFraction(input) && monitor.shouldMonitor(input)) {
             CustomLatencyAttributesGenerator customAttributesGen =
                     this.monitoredBolt.getCustomLatencyAttributesGenerator();
 
@@ -63,7 +69,7 @@ public class MonitoredOutputCollector extends OutputCollector {
 
     @Override
     public void fail(Tuple input) {
-        if (monitor.shouldMonitor(input)) {
+        if (shouldMonitorFraction(input) && monitor.shouldMonitor(input)) {
             CustomLatencyAttributesGenerator customAttributesGen =
                     this.monitoredBolt.getCustomLatencyAttributesGenerator();
 
@@ -90,6 +96,10 @@ public class MonitoredOutputCollector extends OutputCollector {
 
         monitor.send(new ExceptionEvent(t).service(this.monitoredBolt.boltService));
         super.reportError(t);
+    }
+
+    private boolean shouldMonitorFraction(Tuple t) {
+        return t.hashCode() % latencyFraction == 0;
     }
 
     private PairKey pair(Tuple tuple) {

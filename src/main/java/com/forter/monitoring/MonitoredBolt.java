@@ -23,7 +23,7 @@ import java.util.Map;
 public abstract class MonitoredBolt implements IRichBolt {
     private final IRichBolt delegate;
     private final CustomLatencyAttributesGenerator customAttributesGenerator;
-    private final boolean monitorLatency;
+    private final int latencyFraction;
 
     transient String boltService;
     private transient Monitor monitor;
@@ -31,13 +31,13 @@ public abstract class MonitoredBolt implements IRichBolt {
     private transient Logger logger;
 
     public MonitoredBolt(IRichBolt delegate) {
-        this(delegate, null, true);
+        this(delegate, null, 1);
     }
 
-    public MonitoredBolt(IRichBolt delegate, CustomLatencyAttributesGenerator customAttributesGenerator, boolean monitorLatency) {
+    public MonitoredBolt(IRichBolt delegate, CustomLatencyAttributesGenerator customAttributesGenerator, int latencyFraction) {
         this.delegate = delegate;
         this.customAttributesGenerator = customAttributesGenerator;
-        this.monitorLatency = monitorLatency;
+        this.latencyFraction = latencyFraction;
     }
 
     @Override
@@ -53,13 +53,9 @@ public abstract class MonitoredBolt implements IRichBolt {
                 ((EventsAware) delegate).setEventSender(eventSender);
             }
 
-            if (this.monitorLatency) {
-                delegate.prepare(conf, context, new MonitoredOutputCollector(this, collector));
-            } else {
-                delegate.prepare(conf, context, collector);
-            }
+            delegate.prepare(conf, context, new MonitoredOutputCollector(this, collector, this.latencyFraction));
         } catch(Throwable t) {
-            logger.warn("Error during bolt prepare : ", t);
+            logger.warn("Error during bolt prepare: ", t);
             throw Throwables.propagate(t);
         }
     }
@@ -70,13 +66,15 @@ public abstract class MonitoredBolt implements IRichBolt {
     public void execute(Tuple tuple) {
         try {
             logger.trace("Entered execute with tuple: ", tuple);
-            if (monitorLatency && monitor.shouldMonitor(tuple)) {
+            if (monitor.shouldMonitor(tuple)) {
                 if (delegate instanceof IgnoreLatencyComponent) {
                     if (!((IgnoreLatencyComponent) delegate).shouldMonitorLatency(tuple)) {
                         return;
                     }
                 }
-                monitor.startExecute(pair(tuple), tuple, this.boltService);
+                if (tuple.hashCode()%this.latencyFraction == 0) {
+                    monitor.startExecute(pair(tuple), tuple, this.boltService);
+                }
             }
         } finally {
             delegate.execute(tuple);
@@ -93,7 +91,7 @@ public abstract class MonitoredBolt implements IRichBolt {
         try {
             delegate.cleanup();
         } catch(Throwable t) {
-            logger.info("Error during bolt cleanup : ", t);
+            logger.info("Error during bolt cleanup: ", t);
             throw Throwables.propagate(t);
         }
     }
