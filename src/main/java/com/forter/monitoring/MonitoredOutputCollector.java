@@ -79,7 +79,7 @@ public class MonitoredOutputCollector extends OutputCollector {
                 props = customAttributesGen.getCustomAttributes(input);
             }
 
-            monitor.endExecute(pair(input), props, new Throwable(this.monitoredBolt.boltService + " failed to process tuple"));
+            monitor.endExecute(pair(input), props, new Throwable(this.monitoredBolt.componentId + " failed to process tuple"));
         }
         super.fail(input);
     }
@@ -94,7 +94,7 @@ public class MonitoredOutputCollector extends OutputCollector {
             }
         }
 
-        monitor.send(new ExceptionEvent(t).service(this.monitoredBolt.boltService));
+        monitor.send(new ExceptionEvent(t).service(this.monitoredBolt.componentId));
         super.reportError(t);
     }
 

@@ -15,45 +15,56 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /*
 * This class creates a monitored wrapper around other bolt classes to measure the time from execution till ack/fail.
 * Currently ignores emit timings.
 */
 public abstract class MonitoredBolt implements IRichBolt {
+    private static final long THROUGHPUT_REPORT_INTERVAL_MILLIS = TimeUnit.SECONDS.toMillis(10);
+
     private final IRichBolt delegate;
     private final CustomLatencyAttributesGenerator customAttributesGenerator;
     private final int latencyFraction;
+    private final boolean monitorThroughput;
 
-    transient String boltService;
-    private transient Monitor monitor;
+    transient String componentId;
 
     private transient Logger logger;
+    private transient Monitor monitor;
+
+    private transient long lastThroughputSent;
+    private transient long executedInCycle;
 
     public MonitoredBolt(IRichBolt delegate) {
-        this(delegate, null, 1);
+        this(delegate, null, 1, false);
     }
 
-    public MonitoredBolt(IRichBolt delegate, CustomLatencyAttributesGenerator customAttributesGenerator, int latencyFraction) {
+    public MonitoredBolt(IRichBolt delegate, CustomLatencyAttributesGenerator customAttributesGenerator, int latencyFraction, boolean monitorThroughput) {
         this.delegate = delegate;
         this.customAttributesGenerator = customAttributesGenerator;
         this.latencyFraction = latencyFraction;
+        this.monitorThroughput = monitorThroughput;
     }
 
     @Override
     public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
         try {
-            boltService = context.getThisComponentId();
-            logger = LoggerFactory.getLogger(boltService);
+            componentId = context.getThisComponentId();
+            logger = LoggerFactory.getLogger(componentId);
 
             EventSender eventSender = getEventSender();
-            monitor = new Monitor(conf, boltService, eventSender);
+            monitor = new Monitor(conf, componentId, eventSender);
 
             if(delegate instanceof EventsAware) {
                 ((EventsAware) delegate).setEventSender(eventSender);
             }
 
             delegate.prepare(conf, context, new MonitoredOutputCollector(this, collector, this.latencyFraction));
+
+            this.lastThroughputSent = System.currentTimeMillis();
+            this.executedInCycle = 0L;
         } catch(Throwable t) {
             logger.warn("Error during bolt prepare: ", t);
             throw Throwables.propagate(t);
@@ -72,13 +83,28 @@ public abstract class MonitoredBolt implements IRichBolt {
                         return;
                     }
                 }
-                if (tuple.hashCode()%this.latencyFraction == 0) {
-                    monitor.startExecute(pair(tuple), tuple, this.boltService);
+                if (tuple.hashCode() % this.latencyFraction == 0) {
+                    monitor.startExecute(pair(tuple), tuple, this.componentId);
                 }
             }
         } finally {
             delegate.execute(tuple);
             logger.trace("Finished execution with tuple: ", tuple);
+        }
+
+        if (this.monitorThroughput) {
+            this.executedInCycle++;
+            if ((System.currentTimeMillis() - this.lastThroughputSent) > THROUGHPUT_REPORT_INTERVAL_MILLIS) {
+                try {
+                    monitor.send(new RiemannEvent()
+                            .metric(this.executedInCycle)
+                            .service(this.componentId + " latency. count")
+                            .tuple(tuple));
+                } finally {
+                    this.executedInCycle = 0L;
+                    this.lastThroughputSent = System.currentTimeMillis();
+                }
+            }
         }
     }
 
