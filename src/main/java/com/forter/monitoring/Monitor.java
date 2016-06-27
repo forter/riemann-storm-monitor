@@ -1,6 +1,6 @@
 package com.forter.monitoring;
 
-import backtype.storm.tuple.Tuple;
+import org.apache.storm.tuple.Tuple;
 import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.RiemannEventSender;
 import com.forter.monitoring.events.ExceptionEvent;

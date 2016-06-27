@@ -1,6 +1,6 @@
 package com.forter.monitoring.eventSender;
 
-import backtype.storm.tuple.Tuple;
+import org.apache.storm.tuple.Tuple;
 import com.forter.monitoring.events.RiemannEvent;
 import com.google.common.collect.Maps;
 import lombok.Setter;
