@@ -157,6 +157,10 @@ public class Monitor implements EventSender {
         registerLatency(latencyId, LatencyType.EXECUTE, false, null, null, attributes, er);
     }
 
+    public void ignoreExecute(Object latencyId) {
+        latenciesPerId.invalidate(latencyId);
+    }
+
     public void startLatency(Object latencyId, LatencyType type) {
         registerLatency(latencyId, type, true, null, null, null, null);
     }
