@@ -54,8 +54,8 @@ public abstract class MonitoredSpout implements IRichSpout {
             delegate.open(conf, context, new SpoutOutputCollector(collector) {
                 @Override
                 public List<Integer> emit(String streamId, List<Object> tuple, Object messageId) {
-                    List<Integer> emitResult = super.emit(streamId, tuple, messageId);
                     monitor.startExecute(messageId, null, spoutService);
+                    List<Integer> emitResult = super.emit(streamId, tuple, messageId);
                     return emitResult;
                 }
 
