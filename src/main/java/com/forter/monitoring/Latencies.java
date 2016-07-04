@@ -5,6 +5,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Maps;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.google.common.base.Optional.of;
 
@@ -15,12 +16,14 @@ public class Latencies {
     private final Map<LatencyType, Latency> latencyMap;
     private final String service;
     private final Tuple tuple;
+    private final AtomicBoolean hasFinished;
 
     public Latencies(Long executeStartNanos, String service, Tuple tuple) {
         this.latencyMap = Maps.newHashMap();
         this.setStartNanos(LatencyType.EXECUTE, executeStartNanos);
         this.service = service;
         this.tuple = tuple;
+        this.hasFinished = new AtomicBoolean(false);
     }
 
     public Optional<Long> getLatencyNanos(LatencyType type) {
@@ -53,6 +56,10 @@ public class Latencies {
 
     public Tuple getTuple() {
         return tuple;
+    }
+
+    public AtomicBoolean getHasFinished() {
+        return hasFinished;
     }
 
     public static class Latency {

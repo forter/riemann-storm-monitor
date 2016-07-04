@@ -221,11 +221,17 @@ public class Monitor implements EventSender {
                             long endTimeMillis = System.currentTimeMillis();
                             long elapsedMillis = NANOSECONDS.toMillis(latencies.getLatencyNanos(type).get());
 
+                            LatencyEvent event = new LatencyEvent(elapsedMillis).service(latencies.getService()).error(er);
+
+                            if (!latencies.getHasFinished().get())
+                                latencies.getHasFinished().set(true);
+                            else {
+                                event.tags("strange-emit-error");
+                            }
+
                             final long startTimeMillis = endTimeMillis - elapsedMillis;
 
                             String startTime = df.format(startTimeMillis);
-
-                            LatencyEvent event = new LatencyEvent(elapsedMillis).service(latencies.getService()).error(er);
 
                             if (latencies.getTuple() != null) {
                                 event.tuple(latencies.getTuple());
