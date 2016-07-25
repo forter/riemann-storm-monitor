@@ -37,14 +37,14 @@ public abstract class MonitoredSpout implements IRichSpout {
         }
     }
 
-    protected abstract EventSender getEventSender();
+    protected abstract EventSender createEventSender(Map conf);
 
     @Override
     public void open(Map conf, final TopologyContext context, SpoutOutputCollector collector) {
         logger = LoggerFactory.getLogger(delegate.getClass());
         spoutService = context.getThisComponentId();
 
-        EventSender eventSender = getEventSender();
+        EventSender eventSender = createEventSender(conf);
 
         monitor = new Monitor(conf, spoutService, eventSender);
 
