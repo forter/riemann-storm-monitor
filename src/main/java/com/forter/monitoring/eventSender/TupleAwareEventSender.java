@@ -3,16 +3,33 @@ package com.forter.monitoring.eventSender;
 import org.apache.storm.tuple.Tuple;
 import com.forter.monitoring.events.RiemannEvent;
 import com.google.common.collect.Maps;
-import lombok.Setter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
+import java.util.Map;
+
+import static com.forter.monitoring.Monitor.parseAttributesString;
 
 public class TupleAwareEventSender implements EventSender {
+    private final static Logger logger = LoggerFactory.getLogger(TupleAwareEventSender.class);
+    private final HashMap<String, String> environmentAttributes;
+
     private EventSender delegate;
     private transient Tuple currentTuple;
 
-    public TupleAwareEventSender(EventSender delegate) {
+    public TupleAwareEventSender(EventSender delegate, Map conf) {
         this.delegate = delegate;
+        this.environmentAttributes = Maps.newHashMap();
+        if (conf.containsKey("topology.riemann.attributes")) {
+            Object attributes = conf.get("topology.riemann.attributes");
+            if (attributes instanceof String) {
+                String attributesString = (String) attributes;
+                environmentAttributes.putAll(parseAttributesString(attributesString));
+            } else {
+                logger.warn("Wrong type of custom attributes for riemann, supposed to be String but is {}", attributes.getClass());
+            }
+        }
     }
 
     @Override
@@ -32,6 +49,8 @@ public class TupleAwareEventSender implements EventSender {
                 event.attributes(attributes);
             }
         }
+
+        event.attributes(environmentAttributes);
 
         delegate.send(event);
     }

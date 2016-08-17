@@ -53,16 +53,11 @@ public class MonitoredOutputCollector extends OutputCollector {
     @Override
     public void ack(Tuple input) {
         if (shouldMonitorFraction(input) && monitor.shouldMonitor(input)) {
-            CustomLatencyAttributesGenerator customAttributesGen =
-                    this.monitoredBolt.getCustomLatencyAttributesGenerator();
-
-            EventProperties props = null;
-
-            if (customAttributesGen != null) {
-                props = customAttributesGen.getCustomAttributes(input);
+            if (shouldIgnore(input, true)) {
+                monitor.ignoreExecute(pair(input));
+            } else {
+                monitor.endExecute(pair(input), getCustomAttributes(input), null);
             }
-
-            monitor.endExecute(pair(input), props, null);
         }
         super.ack(input);
     }
@@ -70,16 +65,13 @@ public class MonitoredOutputCollector extends OutputCollector {
     @Override
     public void fail(Tuple input) {
         if (shouldMonitorFraction(input) && monitor.shouldMonitor(input)) {
-            CustomLatencyAttributesGenerator customAttributesGen =
-                    this.monitoredBolt.getCustomLatencyAttributesGenerator();
-
-            EventProperties props = null;
-
-            if (customAttributesGen != null) {
-                props = customAttributesGen.getCustomAttributes(input);
+            if (shouldIgnore(input, false)) {
+                monitor.ignoreExecute(pair(input));
+            } else {
+                monitor.endExecute(pair(input),
+                        getCustomAttributes(input),
+                        new Throwable(this.monitoredBolt.componentId + " failed to process tuple"));
             }
-
-            monitor.endExecute(pair(input), props, new Throwable(this.monitoredBolt.componentId + " failed to process tuple"));
         }
         super.fail(input);
     }
@@ -96,6 +88,20 @@ public class MonitoredOutputCollector extends OutputCollector {
 
         monitor.send(new ExceptionEvent(t).service(this.monitoredBolt.componentId));
         super.reportError(t);
+    }
+
+    private boolean shouldIgnore(Tuple input, boolean isAck) {
+        LatencyIgnoreToggle latencyIgnoreToggle = this.monitoredBolt.getLatencyIgnoreToggle();
+        return latencyIgnoreToggle != null && latencyIgnoreToggle.shouldIgnoreLatency(input, isAck);
+    }
+
+    private EventProperties getCustomAttributes(Tuple input) {
+        CustomLatencyAttributesGenerator customAttributesGen =
+                this.monitoredBolt.getCustomLatencyAttributesGenerator();
+        if (customAttributesGen != null) {
+            return customAttributesGen.getCustomAttributes(input);
+        }
+        return null;
     }
 
     private boolean shouldMonitorFraction(Tuple t) {

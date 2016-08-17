@@ -34,6 +34,8 @@ This singleton class centralizes the storm-monitoring functions.
 The monitored bolts and spouts will use the functions in this class.
  */
 public class Monitor implements EventSender {
+    static private final Logger logger = LoggerFactory.getLogger(Monitor.class);
+
     public static final String BOLT_EXCLUSIONS_EXTRA_ACK_ERROR_PROP = "monitoring.report.exclusions.extra-ack";
     public static final String IGNORED_STREAMS_PROP = "monitoring.stream.ignore";
 
@@ -48,7 +50,6 @@ public class Monitor implements EventSender {
     private final DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
     private final EventSender eventSender;
     private final Cache<Object, Latencies> latenciesPerId;
-    private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final Map<String, String> customAttributes;
     private final Object cacheLock;
     private final Set<String> extraAckReportingExclusions;
@@ -157,6 +158,10 @@ public class Monitor implements EventSender {
         registerLatency(latencyId, LatencyType.EXECUTE, false, null, null, attributes, er);
     }
 
+    public void ignoreExecute(Object latencyId) {
+        latenciesPerId.invalidate(latencyId);
+    }
+
     public void startLatency(Object latencyId, LatencyType type) {
         registerLatency(latencyId, type, true, null, null, null, null);
     }
@@ -217,11 +222,17 @@ public class Monitor implements EventSender {
                             long endTimeMillis = System.currentTimeMillis();
                             long elapsedMillis = NANOSECONDS.toMillis(latencies.getLatencyNanos(type).get());
 
+                            LatencyEvent event = new LatencyEvent(elapsedMillis).service(latencies.getService()).error(er);
+
+                            if (!latencies.getHasFinished().get())
+                                latencies.getHasFinished().set(true);
+                            else {
+                                event.tags("strange-emit-error");
+                            }
+
                             final long startTimeMillis = endTimeMillis - elapsedMillis;
 
                             String startTime = df.format(startTimeMillis);
-
-                            LatencyEvent event = new LatencyEvent(elapsedMillis).service(latencies.getService()).error(er);
 
                             if (latencies.getTuple() != null) {
                                 event.tuple(latencies.getTuple());
@@ -306,7 +317,17 @@ public class Monitor implements EventSender {
         return new HashMap<>();
     }
 
-    private Map<String,String> parseAttributesString(String attributesString) {
+    /**
+     * @return riemann client if discovered on aws.
+     */
+    public Optional<RiemannEventSender> getRiemannEventSender() {
+        if (eventSender instanceof RiemannEventSender) {
+            return Optional.of((RiemannEventSender)eventSender);
+        }
+        return Optional.absent();
+    }
+
+    public static Map<String,String> parseAttributesString(String attributesString) {
         Map<String, String> attributesMap = new HashMap<>();
 
         for (String attribute : attributesString.split(",")) {
@@ -317,17 +338,8 @@ public class Monitor implements EventSender {
             }
             attributesMap.put(keyValue[0], keyValue[1]);
         }
-        return attributesMap;
-    }
 
-    /**
-     * @return riemann client if discovered on aws.
-     */
-    public Optional<RiemannEventSender> getRiemannEventSender() {
-        if (eventSender instanceof RiemannEventSender) {
-            return Optional.of((RiemannEventSender)eventSender);
-        }
-        return Optional.absent();
+        return attributesMap;
     }
 
     public boolean shouldMonitor(Tuple input) {

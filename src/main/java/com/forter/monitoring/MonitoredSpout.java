@@ -37,14 +37,14 @@ public abstract class MonitoredSpout implements IRichSpout {
         }
     }
 
-    protected abstract EventSender getEventSender();
+    protected abstract EventSender createEventSender(Map conf);
 
     @Override
     public void open(Map conf, final TopologyContext context, SpoutOutputCollector collector) {
         logger = LoggerFactory.getLogger(delegate.getClass());
         spoutService = context.getThisComponentId();
 
-        EventSender eventSender = getEventSender();
+        EventSender eventSender = createEventSender(conf);
 
         monitor = new Monitor(conf, spoutService, eventSender);
 
@@ -54,8 +54,8 @@ public abstract class MonitoredSpout implements IRichSpout {
             delegate.open(conf, context, new SpoutOutputCollector(collector) {
                 @Override
                 public List<Integer> emit(String streamId, List<Object> tuple, Object messageId) {
-                    List<Integer> emitResult = super.emit(streamId, tuple, messageId);
                     monitor.startExecute(messageId, null, spoutService);
+                    List<Integer> emitResult = super.emit(streamId, tuple, messageId);
                     return emitResult;
                 }
 

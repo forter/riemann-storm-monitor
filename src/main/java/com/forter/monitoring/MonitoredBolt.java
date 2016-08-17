@@ -25,25 +25,25 @@ public abstract class MonitoredBolt implements IRichBolt {
     private static final long THROUGHPUT_REPORT_INTERVAL_MILLIS = TimeUnit.SECONDS.toMillis(10);
 
     private final IRichBolt delegate;
-    private final CustomLatencyAttributesGenerator customAttributesGenerator;
     private final int latencyFraction;
     private final boolean monitorThroughput;
 
+    private CustomLatencyAttributesGenerator customAttributesGenerator;
+    private LatencyIgnoreToggle latencyIgnoreToggle;
+
     transient String componentId;
-
     private transient Logger logger;
-    private transient Monitor monitor;
 
+    private transient Monitor monitor;
     private transient long lastThroughputSent;
     private transient long executedInCycle;
 
     public MonitoredBolt(IRichBolt delegate) {
-        this(delegate, null, 1, false);
+        this(delegate, 1, false);
     }
 
-    public MonitoredBolt(IRichBolt delegate, CustomLatencyAttributesGenerator customAttributesGenerator, int latencyFraction, boolean monitorThroughput) {
+    public MonitoredBolt(IRichBolt delegate, int latencyFraction, boolean monitorThroughput) {
         this.delegate = delegate;
-        this.customAttributesGenerator = customAttributesGenerator;
         this.latencyFraction = latencyFraction;
         this.monitorThroughput = monitorThroughput;
     }
@@ -136,8 +136,20 @@ public abstract class MonitoredBolt implements IRichBolt {
         monitor.send(event);
     }
 
-    public CustomLatencyAttributesGenerator getCustomLatencyAttributesGenerator() {
+    CustomLatencyAttributesGenerator getCustomLatencyAttributesGenerator() {
         return customAttributesGenerator;
+    }
+
+    public void setCustomLatencyAttributesGenerator(CustomLatencyAttributesGenerator customAttributesGenerator) {
+        this.customAttributesGenerator = customAttributesGenerator;
+    }
+
+    LatencyIgnoreToggle getLatencyIgnoreToggle() {
+        return latencyIgnoreToggle;
+    }
+
+    public void setLatencyIgnoreToggle(LatencyIgnoreToggle latencyIgnoreToggle) {
+        this.latencyIgnoreToggle = latencyIgnoreToggle;
     }
 
     public Monitor getMonitor() {
