@@ -1,16 +1,16 @@
 package com.forter.monitoring;
 
-import org.apache.storm.task.OutputCollector;
-import org.apache.storm.task.TopologyContext;
-import org.apache.storm.topology.IRichBolt;
-import org.apache.storm.topology.OutputFieldsDeclarer;
-import org.apache.storm.tuple.Tuple;
 import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.EventsAware;
 import com.forter.monitoring.eventSender.IgnoreLatencyComponent;
 import com.forter.monitoring.events.RiemannEvent;
 import com.forter.monitoring.utils.PairKey;
 import com.google.common.base.Throwables;
+import org.apache.storm.task.OutputCollector;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.topology.IRichBolt;
+import org.apache.storm.topology.OutputFieldsDeclarer;
+import org.apache.storm.tuple.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -133,7 +133,7 @@ public abstract class MonitoredBolt implements IRichBolt {
     }
 
     public void send(RiemannEvent event) {
-        monitor.send(event);
+        if (monitor != null) monitor.send(event);
     }
 
     CustomLatencyAttributesGenerator getCustomLatencyAttributesGenerator() {

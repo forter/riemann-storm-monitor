@@ -1,8 +1,8 @@
 package com.forter.monitoring.eventSender;
 
-import org.apache.storm.tuple.Tuple;
 import com.forter.monitoring.events.RiemannEvent;
 import com.google.common.collect.Maps;
+import org.apache.storm.tuple.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +27,7 @@ public class TupleAwareEventSender implements EventSender {
                 String attributesString = (String) attributes;
                 environmentAttributes.putAll(parseAttributesString(attributesString));
             } else {
+                if (logger == null) throw new RuntimeException("Logger is null");
                 logger.warn("Wrong type of custom attributes for riemann, supposed to be String but is {}", attributes.getClass());
             }
         }
