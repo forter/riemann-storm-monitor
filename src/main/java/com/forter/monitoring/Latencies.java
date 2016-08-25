@@ -1,6 +1,6 @@
 package com.forter.monitoring;
 
-import org.apache.storm.tuple.Tuple;
+import backtype.storm.tuple.Tuple;
 import com.google.common.base.Optional;
 import com.google.common.collect.Maps;
 

@@ -1,6 +1,6 @@
 package com.forter.monitoring;
 
-import org.apache.storm.topology.IRichSpout;
+import backtype.storm.topology.IRichSpout;
 import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.utils.EventSenderSingleton;
 
