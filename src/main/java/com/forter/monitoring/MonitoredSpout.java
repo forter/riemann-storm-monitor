@@ -26,6 +26,7 @@ public abstract class MonitoredSpout implements IRichSpout {
     private transient Logger logger;
     private String spoutService;
     private Optional<String> idName;
+    private LatencyMonitorEventCreator latencyRemovalEventCreator = null;
 
     public MonitoredSpout(IRichSpout delegate) {
         this.delegate = delegate;
@@ -46,7 +47,7 @@ public abstract class MonitoredSpout implements IRichSpout {
 
         EventSender eventSender = createEventSender(conf);
 
-        monitor = new Monitor(conf, spoutService, eventSender);
+        monitor = new Monitor(conf, spoutService, eventSender, latencyRemovalEventCreator);
 
         injectEventSender(delegate, monitor);
 
@@ -152,5 +153,9 @@ public abstract class MonitoredSpout implements IRichSpout {
      */
     public void setIdName(String idName) {
         this.idName = Optional.of(idName);
+    }
+
+    public void setLatencyRemovalEventCreator(LatencyMonitorEventCreator latencyRemovalEventCreator) {
+        this.latencyRemovalEventCreator = latencyRemovalEventCreator;
     }
 }
