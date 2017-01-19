@@ -56,7 +56,7 @@ public class MonitoredOutputCollector extends OutputCollector {
             if (shouldIgnore(input, true)) {
                 monitor.ignoreExecute(pair(input));
             } else {
-                monitor.endExecute(pair(input), getCustomAttributes(input), null);
+                monitor.endExecute(pair(input), getCustomAttributes(input), true);
             }
         }
         super.ack(input);
@@ -68,9 +68,7 @@ public class MonitoredOutputCollector extends OutputCollector {
             if (shouldIgnore(input, false)) {
                 monitor.ignoreExecute(pair(input));
             } else {
-                monitor.endExecute(pair(input),
-                        getCustomAttributes(input),
-                        new Throwable(this.monitoredBolt.componentId + " failed to process tuple"));
+                monitor.endExecute(pair(input), getCustomAttributes(input), false);
             }
         }
         super.fail(input);
