@@ -8,7 +8,7 @@ import java.util.Map;
 
 public class DefaultMonitoredSpout extends MonitoredSpout {
     public DefaultMonitoredSpout(IRichSpout delegate) {
-        super(delegate);
+        super(delegate, 1);
     }
 
     @Override

@@ -21,6 +21,7 @@ The usage is -
 MonitoredSpout ms = new MonitoredSpout(new SpoutToMonitor());
 */
 public abstract class MonitoredSpout implements IRichSpout {
+    private final int latencyFraction;
     protected Monitor monitor;
     private final IRichSpout delegate;
     private transient Logger logger;
@@ -28,8 +29,9 @@ public abstract class MonitoredSpout implements IRichSpout {
     private Optional<String> idName;
     private LatencyMonitorEventCreator latencyRemovalEventCreator = null;
 
-    public MonitoredSpout(IRichSpout delegate) {
+    public MonitoredSpout(IRichSpout delegate, int latencyFraction) {
         this.delegate = delegate;
+        this.latencyFraction = latencyFraction;
     }
 
     private static void injectEventSender(IRichSpout delegate, EventSender eventSender) {
@@ -55,14 +57,18 @@ public abstract class MonitoredSpout implements IRichSpout {
             delegate.open(conf, context, new SpoutOutputCollector(collector) {
                 @Override
                 public List<Integer> emit(String streamId, List<Object> tuple, Object messageId) {
-                    monitor.startExecute(messageId, null, spoutService);
+                    if (shouldMonitorFraction(messageId)) {
+                        monitor.startExecute(messageId, null, spoutService);
+                    }
                     List<Integer> emitResult = super.emit(streamId, tuple, messageId);
                     return emitResult;
                 }
 
                 @Override
                 public void emitDirect(int taskId, String streamId, List<Object> tuple, Object messageId) {
-                    super.emitDirect(taskId, streamId, tuple, messageId);
+                    if (shouldMonitorFraction(messageId)) {
+                        super.emitDirect(taskId, streamId, tuple, messageId);
+                    }
                     monitor.startExecute(messageId, null, spoutService);
                 }
             });
@@ -89,14 +95,15 @@ public abstract class MonitoredSpout implements IRichSpout {
 
     @Override
     public void ack(Object id) {
-        if(idName.isPresent()) {
-            EventProperties props = new EventProperties();
-            props.getAttributes().put(idName.get(), String.valueOf(id));
-            monitor.endExecute(id, props, true);
-        } else {
-            monitor.endExecute(id, null, true);
+        if (shouldMonitorFraction(id)) {
+            if (idName.isPresent()) {
+                EventProperties props = new EventProperties();
+                props.getAttributes().put(idName.get(), String.valueOf(id));
+                monitor.endExecute(id, props, true);
+            } else {
+                monitor.endExecute(id, null, true);
+            }
         }
-
         try {
             delegate.ack(id);
         } catch(Throwable t) {
@@ -107,12 +114,14 @@ public abstract class MonitoredSpout implements IRichSpout {
 
     @Override
     public void fail(Object id) {
-        if(idName.isPresent()) {
-            EventProperties props = new EventProperties();
-            props.getAttributes().put(idName.get(), String.valueOf(id));
-            monitor.endExecute(id, props, false);
-        } else {
-            monitor.endExecute(id, null, false);
+        if (shouldMonitorFraction(id)) {
+            if (idName.isPresent()) {
+                EventProperties props = new EventProperties();
+                props.getAttributes().put(idName.get(), String.valueOf(id));
+                monitor.endExecute(id, props, false);
+            } else {
+                monitor.endExecute(id, null, false);
+            }
         }
         try {
             delegate.fail(id);
@@ -120,6 +129,10 @@ public abstract class MonitoredSpout implements IRichSpout {
             logger.info("Error during spout fail : ", t);
             throw Throwables.propagate(t);
         }
+    }
+
+    private boolean shouldMonitorFraction(Object t) {
+        return t.hashCode() % latencyFraction == 0;
     }
 
     @Override
