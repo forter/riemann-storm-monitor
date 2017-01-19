@@ -9,4 +9,5 @@ public interface LatencyMonitorEventCreator {
     Iterable<RiemannEvent> createMonitorKeyMissingEvents(String service, Object latencyId);
     Iterable<RiemannEvent> createEmitLatencyEvents(long emitMillis, String boltService, Tuple tuple);
     Iterable<RiemannEvent> createErrorEvents(Throwable er, String boltService);
+    Iterable<RiemannEvent> createLatencyEvents(Throwable error, Latencies service, long endTimeMillis, long elapsedMillis, EventProperties properties);
 }

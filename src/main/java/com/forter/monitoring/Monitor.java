@@ -3,7 +3,6 @@ package com.forter.monitoring;
 import backtype.storm.tuple.Tuple;
 import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.RiemannEventSender;
-import com.forter.monitoring.events.LatencyEvent;
 import com.forter.monitoring.events.RiemannEvent;
 import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
@@ -16,8 +15,6 @@ import com.google.common.primitives.Ints;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -48,7 +45,6 @@ public class Monitor implements EventSender {
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private static final Random randomGenerator = new Random();
 
-    private final DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
     private final EventSender eventSender;
     private final Cache<Object, Latencies> latenciesPerId;
     private final Map<String, String> customAttributes;
@@ -219,33 +215,7 @@ public class Monitor implements EventSender {
                             long endTimeMillis = System.currentTimeMillis();
                             long elapsedMillis = NANOSECONDS.toMillis(latencies.getLatencyNanos(type).get());
 
-                            LatencyEvent event = new LatencyEvent(elapsedMillis).service(latencies.getService()).error(er);
-
-                            if (!latencies.getHasFinished().get())
-                                latencies.getHasFinished().set(true);
-                            else {
-                                event.tags("strange-emit-error");
-                            }
-
-                            final long startTimeMillis = endTimeMillis - elapsedMillis;
-
-                            String startTime = df.format(startTimeMillis);
-
-                            if (latencies.getTuple() != null) {
-                                event.tuple(latencies.getTuple());
-                            }
-
-                            if (properties != null) {
-                                if (properties.getAttributes() != null) {
-                                    event.attributes(properties.getAttributes());
-                                }
-                                if (properties.getTags() != null) {
-                                    event.tags(properties.getTags());
-                                }
-                            }
-
-                            event.attribute("startTime", startTime);
-                            event.attribute("startTimeMillis", Long.toString(startTimeMillis));
+                            Iterable<RiemannEvent> event = this.latencyMonitorEventCreator.createLatencyEvents(er, latencies, endTimeMillis, elapsedMillis, properties);
 
                             send(event);
 

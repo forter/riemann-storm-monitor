@@ -2,14 +2,19 @@ package com.forter.monitoring;
 
 import backtype.storm.tuple.Tuple;
 import com.forter.monitoring.events.ExceptionEvent;
+import com.forter.monitoring.events.LatencyEvent;
 import com.forter.monitoring.events.RiemannEvent;
 import com.google.common.cache.RemovalCause;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Lists;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+
 public class DefaultLatencyMonitorEventCreator implements LatencyMonitorEventCreator {
     public final static String MISSING_KEY_TAG = "latency-missing-key";
     public final static String UNEXPECTED_REMOVE_KEY_TAG = "latency-unexpectedly-removed";
+    public final static DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
     @Override
     public Iterable<RiemannEvent> createExpiryRemovalEvents(RemovalNotification<Object, Latencies> notification, String boltService) {
@@ -52,5 +57,40 @@ public class DefaultLatencyMonitorEventCreator implements LatencyMonitorEventCre
     @Override
     public Iterable<RiemannEvent> createErrorEvents(Throwable er, String boltService) {
         return Lists.newArrayList(new ExceptionEvent(er).service(boltService));
+    }
+
+    @Override
+    public Iterable<RiemannEvent> createLatencyEvents(Throwable error, Latencies latencies, long endTimeMillis, long elapsedMillis, EventProperties properties) {
+        LatencyEvent event = new LatencyEvent(elapsedMillis)
+                .service(latencies.getService())
+                .error(error);
+
+        if (!latencies.getHasFinished().get())
+            latencies.getHasFinished().set(true);
+        else {
+            event.tags("strange-emit-error");
+        }
+
+        final long startTimeMillis = endTimeMillis - elapsedMillis;
+
+        String startTime = DATE_FORMAT.format(startTimeMillis);
+
+        if (latencies.getTuple() != null) {
+            event.tuple(latencies.getTuple());
+        }
+
+        if (properties != null) {
+            if (properties.getAttributes() != null) {
+                event.attributes(properties.getAttributes());
+            }
+            if (properties.getTags() != null) {
+                event.tags(properties.getTags());
+            }
+        }
+
+        event.attribute("startTime", startTime);
+        event.attribute("startTimeMillis", Long.toString(startTimeMillis));
+
+        return Lists.<RiemannEvent>newArrayList(event);
     }
 }
