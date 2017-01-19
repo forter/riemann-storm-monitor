@@ -37,6 +37,7 @@ public abstract class MonitoredBolt implements IRichBolt {
     private transient Monitor monitor;
     private transient long lastThroughputSent;
     private transient long executedInCycle;
+    private LatencyMonitorEventCreator latencyRemovalEventCreator;
 
     public MonitoredBolt(IRichBolt delegate) {
         this(delegate, 1, false);
@@ -55,7 +56,7 @@ public abstract class MonitoredBolt implements IRichBolt {
             logger = LoggerFactory.getLogger(componentId);
 
             EventSender eventSender = getEventSender();
-            monitor = new Monitor(conf, componentId, eventSender);
+            monitor = new Monitor(conf, componentId, eventSender, latencyRemovalEventCreator);
 
             if(delegate instanceof EventsAware) {
                 ((EventsAware) delegate).setEventSender(eventSender);
@@ -154,6 +155,10 @@ public abstract class MonitoredBolt implements IRichBolt {
 
     public Monitor getMonitor() {
         return monitor;
+    }
+
+    public void setLatencyRemovalEventCreator(LatencyMonitorEventCreator latencyRemovalEventCreator) {
+        this.latencyRemovalEventCreator = latencyRemovalEventCreator;
     }
 }
 

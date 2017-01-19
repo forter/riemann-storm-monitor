@@ -3,7 +3,6 @@ package com.forter.monitoring;
 import backtype.storm.tuple.Tuple;
 import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.RiemannEventSender;
-import com.forter.monitoring.events.ExceptionEvent;
 import com.forter.monitoring.events.LatencyEvent;
 import com.forter.monitoring.events.RiemannEvent;
 import com.google.common.base.Optional;
@@ -40,8 +39,10 @@ public class Monitor implements EventSender {
     public static final String IGNORED_STREAMS_PROP = "monitoring.stream.ignore";
 
     private static final int MAX_CONCURRENCY_DEFAULT = 2;
-    private static final long MAX_SIZE_DEFAULT = 1000;
-    private static final long MAX_TIME_DEFAULT = 60;
+
+    private static final Long MAX_SIZE_DEFAULT = getEnv("LATENCY_REPORTING_MAP_MAX_SIZE", 1000L);
+    private static final long MAX_TIME_DEFAULT = getEnv("LATENCY_REPORTING_MAX_WAIT", 60L);
+
     private static final long PERIODIC_CLEANUP_INTERVAL_MILLIS = TimeUnit.MINUTES.toMillis(5);
 
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
@@ -55,12 +56,13 @@ public class Monitor implements EventSender {
     private final Set<String> extraAckReportingExclusions;
     private final String boltService;
     private final Set<String> ignoredStreams;
+    private final LatencyMonitorEventCreator latencyMonitorEventCreator;
 
     private int maxConcurrency;
     private long maxSize;
     private long maxTime;
 
-    public Monitor(Map conf, final String boltService, EventSender eventSender) {
+    public Monitor(Map conf, final String boltService, EventSender eventSender, LatencyMonitorEventCreator latencyMonitorEventCreator) {
         this.latenciesPerId = createCache(conf, boltService);
 
         this.customAttributes = extractCustomEventAttributes(conf);
@@ -74,6 +76,12 @@ public class Monitor implements EventSender {
 
         this.extraAckReportingExclusions = getListConfigurationPropery(conf, BOLT_EXCLUSIONS_EXTRA_ACK_ERROR_PROP);
         this.ignoredStreams = getListConfigurationPropery(conf, IGNORED_STREAMS_PROP);
+
+        if (latencyMonitorEventCreator != null) {
+            this.latencyMonitorEventCreator = latencyMonitorEventCreator;
+        } else {
+            this.latencyMonitorEventCreator = new DefaultLatencyMonitorEventCreator();
+        }
 
         scheduler.scheduleAtFixedRate(
                 new Runnable() {
@@ -102,7 +110,7 @@ public class Monitor implements EventSender {
     }
 
     public Monitor() {
-        this(new HashMap(), "", null);
+        this(new HashMap(), "", null, null);
     }
 
     private Cache<Object, Latencies>  createCache(Map conf, final String boltService) {
@@ -119,18 +127,7 @@ public class Monitor implements EventSender {
                     @Override
                     public void onRemoval(RemovalNotification<Object, Latencies> notification) {
                         if (notification.getCause() != RemovalCause.EXPLICIT) {
-                            ExceptionEvent event = new ExceptionEvent("Latency object unexpectedly removed");
-                            event.attribute("removalCause", notification.getCause().name());
-                            event.service(boltService);
-                            if (notification.getValue() != null && notification.getValue().getTuple() != null) {
-                                final Tuple tuple = notification.getValue().getTuple();
-                                event.attribute("receivedFrom", tuple.getSourceComponent());
-                                if (notification.getCause() == RemovalCause.EXPIRED) {
-                                    event.attribute("tuple", tuple.toString());
-                                    event.tags("pii");
-                                }
-                            }
-                            send(event);
+                            send(latencyMonitorEventCreator.createExpiryRemovalEvents(notification, boltService));
                         }
                     }
                 })
@@ -257,17 +254,7 @@ public class Monitor implements EventSender {
                                 final long emitMillis = NANOSECONDS.toMillis(emitLatencyNanos.get());
 
                                 if (emitMillis >= 5) {
-                                    RiemannEvent emitLatencyEvent = new RiemannEvent()
-                                            .metric(emitMillis)
-                                            .service(service + " emit latency.")
-                                            .tags("emit-latency")
-                                            .service(this.boltService);
-
-                                    if (tuple != null) {
-                                        emitLatencyEvent.tuple(tuple);
-                                    }
-
-                                    send(emitLatencyEvent);
+                                    send(latencyMonitorEventCreator.createEmitLatencyEvents(emitMillis, this.boltService, tuple));
                                 }
                             }
 
@@ -276,11 +263,11 @@ public class Monitor implements EventSender {
                             }
                         } else {
                             if (!extraAckReportingExclusions.contains(this.boltService)) {
-                                send(new ExceptionEvent("Latency monitor doesn't recognize key.").service(service).attribute("key", latencyId.toString()));
+                                send(latencyMonitorEventCreator.createMonitorKeyMissingEvents(service, latencyId));
                                 if (er == null) {
                                     logger.warn("Latency monitor doesn't recognize key {}.", latencyId);
                                 } else {
-                                    send(new ExceptionEvent(er).service(this.boltService));
+                                    send(latencyMonitorEventCreator.createErrorEvents(er, this.boltService));
                                     logger.warn("Latency monitor doesn't recognize key {}. Swallowed exception {}", latencyId, er);
                                 }
                             } else {
@@ -300,6 +287,12 @@ public class Monitor implements EventSender {
                     }
                     break;
             }
+        }
+    }
+
+    private void send(Iterable<RiemannEvent> events) {
+        for (RiemannEvent event : events) {
+            send(event);
         }
     }
 
@@ -344,5 +337,14 @@ public class Monitor implements EventSender {
 
     public boolean shouldMonitor(Tuple input) {
         return !this.ignoredStreams.contains(input.getSourceStreamId());
+    }
+
+    private static Long getEnv(String name, Long defaultValue) {
+        String value = System.getenv(name);
+
+        if (value == null)
+            return defaultValue;
+
+        return Long.parseLong(value);
     }
 }
