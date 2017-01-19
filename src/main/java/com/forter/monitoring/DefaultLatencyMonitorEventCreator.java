@@ -55,15 +55,10 @@ public class DefaultLatencyMonitorEventCreator implements LatencyMonitorEventCre
     }
 
     @Override
-    public Iterable<RiemannEvent> createErrorEvents(Throwable er, String boltService) {
-        return Lists.newArrayList(new ExceptionEvent(er).service(boltService));
-    }
-
-    @Override
-    public Iterable<RiemannEvent> createLatencyEvents(Throwable error, Latencies latencies, long endTimeMillis, long elapsedMillis, EventProperties properties) {
-        LatencyEvent event = new LatencyEvent(elapsedMillis)
+    public Iterable<RiemannEvent> createLatencyEvents(Boolean success, Latencies latencies, long endTimeMillis, long elapsedMillis, EventProperties properties) {
+        LatencyEvent event = (LatencyEvent) new LatencyEvent(elapsedMillis)
                 .service(latencies.getService())
-                .error(error);
+                .state(success ? "success" : "failure");
 
         if (!latencies.getHasFinished().get())
             latencies.getHasFinished().set(true);

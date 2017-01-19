@@ -92,9 +92,9 @@ public abstract class MonitoredSpout implements IRichSpout {
         if(idName.isPresent()) {
             EventProperties props = new EventProperties();
             props.getAttributes().put(idName.get(), String.valueOf(id));
-            monitor.endExecute(id, props, null);
+            monitor.endExecute(id, props, true);
         } else {
-            monitor.endExecute(id, null, null);
+            monitor.endExecute(id, null, true);
         }
 
         try {
@@ -110,9 +110,9 @@ public abstract class MonitoredSpout implements IRichSpout {
         if(idName.isPresent()) {
             EventProperties props = new EventProperties();
             props.getAttributes().put(idName.get(), String.valueOf(id));
-            monitor.endExecute(id, props, new Throwable("Storm failed."));
+            monitor.endExecute(id, props, false);
         } else {
-            monitor.endExecute(id, null, new Throwable("Storm failed."));
+            monitor.endExecute(id, null, false);
         }
         try {
             delegate.fail(id);

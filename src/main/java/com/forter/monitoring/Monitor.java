@@ -147,8 +147,8 @@ public class Monitor implements EventSender {
         registerLatency(latencyId, LatencyType.EXECUTE, true, service, tuple, null, null);
     }
 
-    public void endExecute(Object latencyId, EventProperties attributes, Throwable er) {
-        registerLatency(latencyId, LatencyType.EXECUTE, false, null, null, attributes, er);
+    public void endExecute(Object latencyId, EventProperties attributes, boolean success) {
+        registerLatency(latencyId, LatencyType.EXECUTE, false, null, null, attributes, success);
     }
 
     public void ignoreExecute(Object latencyId) {
@@ -193,7 +193,7 @@ public class Monitor implements EventSender {
     }
 
     private void registerLatency(Object latencyId, LatencyType type, boolean isStart, String service, Tuple tuple,
-                                 EventProperties properties, Throwable er) {
+                                 EventProperties properties, Boolean success) {
         final long nanos = System.nanoTime();
         Latencies latencies;
         synchronized (cacheLock) {
@@ -215,7 +215,7 @@ public class Monitor implements EventSender {
                             long endTimeMillis = System.currentTimeMillis();
                             long elapsedMillis = NANOSECONDS.toMillis(latencies.getLatencyNanos(type).get());
 
-                            Iterable<RiemannEvent> event = this.latencyMonitorEventCreator.createLatencyEvents(er, latencies, endTimeMillis, elapsedMillis, properties);
+                            Iterable<RiemannEvent> event = this.latencyMonitorEventCreator.createLatencyEvents(success, latencies, endTimeMillis, elapsedMillis, properties);
 
                             send(event);
 
@@ -234,12 +234,6 @@ public class Monitor implements EventSender {
                         } else {
                             if (!extraAckReportingExclusions.contains(this.boltService)) {
                                 send(latencyMonitorEventCreator.createMonitorKeyMissingEvents(service, latencyId));
-                                if (er == null) {
-                                    logger.warn("Latency monitor doesn't recognize key {}.", latencyId);
-                                } else {
-                                    send(latencyMonitorEventCreator.createErrorEvents(er, this.boltService));
-                                    logger.warn("Latency monitor doesn't recognize key {}. Swallowed exception {}", latencyId, er);
-                                }
                             } else {
                                 logger.trace("Excluded event for non recognized key in latency monitor {}.", latencyId);
                             }
