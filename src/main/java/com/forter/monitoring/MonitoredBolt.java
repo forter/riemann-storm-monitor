@@ -72,7 +72,7 @@ public abstract class MonitoredBolt implements IRichBolt {
         }
     }
 
-    protected MonitoredOutputCollector wrapCollector(OutputCollector collector, TopologyContext context) {
+    protected OutputCollector wrapCollector(OutputCollector collector, TopologyContext context) {
         return new MonitoredOutputCollector(this, collector, this.latencyFraction);
     }
 
