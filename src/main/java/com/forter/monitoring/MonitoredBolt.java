@@ -62,7 +62,7 @@ public abstract class MonitoredBolt implements IRichBolt {
                 ((EventsAware) delegate).setEventSender(eventSender);
             }
 
-            delegate.prepare(conf, context, wrapCollector(collector));
+            delegate.prepare(conf, context, wrapCollector(collector, context));
 
             this.lastThroughputSent = System.currentTimeMillis();
             this.executedInCycle = 0L;
@@ -72,7 +72,7 @@ public abstract class MonitoredBolt implements IRichBolt {
         }
     }
 
-    protected MonitoredOutputCollector wrapCollector(OutputCollector collector) {
+    protected MonitoredOutputCollector wrapCollector(OutputCollector collector, TopologyContext context) {
         return new MonitoredOutputCollector(this, collector, this.latencyFraction);
     }
 
