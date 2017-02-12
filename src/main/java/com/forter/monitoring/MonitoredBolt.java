@@ -62,7 +62,7 @@ public abstract class MonitoredBolt implements IRichBolt {
                 ((EventsAware) delegate).setEventSender(eventSender);
             }
 
-            delegate.prepare(conf, context, new MonitoredOutputCollector(this, collector, this.latencyFraction));
+            delegate.prepare(conf, context, wrapCollector(collector));
 
             this.lastThroughputSent = System.currentTimeMillis();
             this.executedInCycle = 0L;
@@ -70,6 +70,10 @@ public abstract class MonitoredBolt implements IRichBolt {
             logger.warn("Error during bolt prepare: ", t);
             throw Throwables.propagate(t);
         }
+    }
+
+    protected MonitoredOutputCollector wrapCollector(OutputCollector collector) {
+        return new MonitoredOutputCollector(this, collector, this.latencyFraction);
     }
 
     protected abstract EventSender getEventSender();
