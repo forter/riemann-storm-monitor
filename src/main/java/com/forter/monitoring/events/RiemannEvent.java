@@ -89,7 +89,9 @@ public class RiemannEvent {
         if(customAttributes == null) {
             customAttributes = Maps.newHashMap();
         }
-        customAttributes.put(key, value);
+        if (value != null) {
+            customAttributes.put(key, value);
+        }
         return this;
     }
 
