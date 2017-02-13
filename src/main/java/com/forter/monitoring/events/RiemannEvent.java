@@ -93,6 +93,18 @@ public class RiemannEvent {
         return this;
     }
 
+    public RiemannEvent attribute(String key, Integer value) {
+        return attribute(key, Integer.toString(value));
+    }
+
+    public RiemannEvent attribute(String key, Long value) {
+        return attribute(key, Long.toString(value));
+    }
+
+    public RiemannEvent attribute(String key, Double value) {
+        return attribute(key, Double.toString(value));
+    }
+
     public RiemannEvent attributes(Map<String, String> attributes) {
         if(this.customAttributes == null) {
             this.customAttributes = attributes;
