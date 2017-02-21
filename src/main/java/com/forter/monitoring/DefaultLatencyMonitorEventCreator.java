@@ -8,13 +8,17 @@ import com.google.common.cache.RemovalCause;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Lists;
 
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
 public class DefaultLatencyMonitorEventCreator implements LatencyMonitorEventCreator {
     public final static String MISSING_KEY_TAG = "latency-missing-key";
     public final static String UNEXPECTED_REMOVE_KEY_TAG = "latency-unexpectedly-removed";
-    public final static DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    private final SimpleDateFormat dateFormat;
+
+    public DefaultLatencyMonitorEventCreator() {
+        super();
+        this.dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    }
 
     @Override
     public Iterable<RiemannEvent> createExpiryRemovalEvents(RemovalNotification<Object, Latencies> notification, String boltService) {
@@ -68,7 +72,7 @@ public class DefaultLatencyMonitorEventCreator implements LatencyMonitorEventCre
 
         final long startTimeMillis = endTimeMillis - elapsedMillis;
 
-        String startTime = DATE_FORMAT.format(startTimeMillis);
+        String startTime = this.dateFormat.format(startTimeMillis);
 
         if (latencies.getTuple() != null) {
             event.tuple(latencies.getTuple());
