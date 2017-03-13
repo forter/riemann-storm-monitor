@@ -3,12 +3,10 @@ package com.forter.monitoring.events;
 import backtype.storm.tuple.Tuple;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.storm.shade.org.apache.commons.lang.builder.ToStringBuilder;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class RiemannEvent {
     public String host;
@@ -18,7 +16,7 @@ public class RiemannEvent {
     public long time;
     public double metric;
     public Float ttl;
-    public List<String> tags;
+    public Set<String> tags;
     public Map<String, String> customAttributes;
 
     public transient Tuple tuple;
@@ -27,7 +25,7 @@ public class RiemannEvent {
      * Initialize a new RiemannEvent
      */
     public RiemannEvent() {
-        tags = Lists.newArrayList();
+        tags = Sets.newHashSet();
         customAttributes = Maps.newHashMap();
     }
 
@@ -100,6 +98,10 @@ public class RiemannEvent {
             this.customAttributes.putAll(attributes);
         }
         return this;
+    }
+
+    public List<String> listOfTags(){
+        return Lists.newArrayList(this.tags);
     }
 
     @Override
