@@ -52,7 +52,7 @@ public class RiemannEventSender implements EventSender {
                                 .metric(event.metric)
                                 .ttl(event.ttl == null ? DEFAULT_TTL_SEC : event.ttl)
                                 .tag("storm")
-                                .tags(event.tags)
+                                .tags(event.listOfTags())
                                 .attributes(event.customAttributes);
 
             //To avoid 127.0.0.1 appearing as event host
@@ -79,7 +79,7 @@ public class RiemannEventSender implements EventSender {
                 .time(event.time)
                 .metric(event.metric)
                 .ttl(event.ttl == null ? DEFAULT_TTL_SEC : event.ttl)
-                .tags(event.tags)
+                .tags(event.listOfTags())
                 .attributes(event.customAttributes)
                 .send();
     }
@@ -95,7 +95,7 @@ public class RiemannEventSender implements EventSender {
                     .time(event.time)
                     .metric(event.metric)
                     .ttl(event.ttl == null ? DEFAULT_TTL_SEC : event.ttl)
-                    .tags(event.tags)
+                    .tags(event.listOfTags())
                     .attributes(event.customAttributes);
             //To avoid 127.0.0.1 appearing as event host
             if (event.host != null) {
