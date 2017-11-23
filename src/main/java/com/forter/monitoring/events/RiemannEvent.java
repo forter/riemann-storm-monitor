@@ -1,6 +1,6 @@
 package com.forter.monitoring.events;
 
-import backtype.storm.tuple.Tuple;
+import org.apache.storm.tuple.Tuple;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -87,9 +87,7 @@ public class RiemannEvent {
         if(customAttributes == null) {
             customAttributes = Maps.newHashMap();
         }
-        if (value != null) {
-            customAttributes.put(key, value);
-        }
+        customAttributes.put(key, value);
         return this;
     }
 

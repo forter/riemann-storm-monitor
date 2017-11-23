@@ -1,10 +1,10 @@
 package com.forter.monitoring;
 
-import backtype.storm.task.OutputCollector;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.IRichBolt;
-import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.tuple.Tuple;
+import org.apache.storm.task.OutputCollector;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.topology.IRichBolt;
+import org.apache.storm.topology.OutputFieldsDeclarer;
+import org.apache.storm.tuple.Tuple;
 import com.forter.monitoring.eventSender.EventSender;
 import com.forter.monitoring.eventSender.EventsAware;
 import com.forter.monitoring.eventSender.IgnoreLatencyComponent;
@@ -37,6 +37,7 @@ public abstract class MonitoredBolt implements IRichBolt {
     private transient Monitor monitor;
     private transient long lastThroughputSent;
     private transient long executedInCycle;
+    private LatencyMonitorEventCreator latencyRemovalEventCreator;
 
     public MonitoredBolt(IRichBolt delegate) {
         this(delegate, 1, false);
@@ -55,13 +56,13 @@ public abstract class MonitoredBolt implements IRichBolt {
             logger = LoggerFactory.getLogger(componentId);
 
             EventSender eventSender = getEventSender();
-            monitor = new Monitor(conf, componentId, eventSender);
+            monitor = new Monitor(conf, componentId, eventSender, latencyRemovalEventCreator);
 
             if(delegate instanceof EventsAware) {
                 ((EventsAware) delegate).setEventSender(eventSender);
             }
 
-            delegate.prepare(conf, context, new MonitoredOutputCollector(this, collector, this.latencyFraction));
+            delegate.prepare(conf, context, wrapCollector(collector, context));
 
             this.lastThroughputSent = System.currentTimeMillis();
             this.executedInCycle = 0L;
@@ -69,6 +70,10 @@ public abstract class MonitoredBolt implements IRichBolt {
             logger.warn("Error during bolt prepare: ", t);
             throw Throwables.propagate(t);
         }
+    }
+
+    protected OutputCollector wrapCollector(OutputCollector collector, TopologyContext context) {
+        return new MonitoredOutputCollector(this, collector, this.latencyFraction);
     }
 
     protected abstract EventSender getEventSender();
@@ -154,6 +159,10 @@ public abstract class MonitoredBolt implements IRichBolt {
 
     public Monitor getMonitor() {
         return monitor;
+    }
+
+    public void setLatencyRemovalEventCreator(LatencyMonitorEventCreator latencyRemovalEventCreator) {
+        this.latencyRemovalEventCreator = latencyRemovalEventCreator;
     }
 }
 
