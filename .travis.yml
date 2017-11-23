@@ -1,8 +1,11 @@
 language: java
-jdk: oraclejdk7
+sudo: false
+
+install:
+  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pproduction
+
 script:
-- mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V -Pproduction
-- mvn test -B
+  - mvn test -B
 
 deploy:
   provider: s3

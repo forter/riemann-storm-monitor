@@ -1,9 +1,9 @@
 package com.forter.monitoring;
 
-import backtype.storm.task.IOutputCollector;
-import backtype.storm.task.OutputCollector;
-import backtype.storm.topology.FailedException;
-import backtype.storm.tuple.Tuple;
+import org.apache.storm.task.IOutputCollector;
+import org.apache.storm.task.OutputCollector;
+import org.apache.storm.topology.FailedException;
+import org.apache.storm.tuple.Tuple;
 import com.forter.monitoring.events.ExceptionEvent;
 import com.forter.monitoring.utils.PairKey;
 
@@ -14,12 +14,14 @@ public class MonitoredOutputCollector extends OutputCollector {
     private final Monitor monitor;
     private final MonitoredBolt monitoredBolt;
     private final int latencyFraction;
+    private final IOutputCollector delegate;
 
     MonitoredOutputCollector(MonitoredBolt monitoredBolt, IOutputCollector delegate, int latencyFraction) {
         super(delegate);
         this.monitoredBolt = monitoredBolt;
         this.monitor = monitoredBolt.getMonitor();
         this.latencyFraction = latencyFraction;
+        this.delegate = delegate;
     }
 
     @Override
@@ -56,7 +58,7 @@ public class MonitoredOutputCollector extends OutputCollector {
             if (shouldIgnore(input, true)) {
                 monitor.ignoreExecute(pair(input));
             } else {
-                monitor.endExecute(pair(input), getCustomAttributes(input), null);
+                monitor.endExecute(pair(input), getCustomAttributes(input), true);
             }
         }
         super.ack(input);
@@ -68,9 +70,7 @@ public class MonitoredOutputCollector extends OutputCollector {
             if (shouldIgnore(input, false)) {
                 monitor.ignoreExecute(pair(input));
             } else {
-                monitor.endExecute(pair(input),
-                        getCustomAttributes(input),
-                        new Throwable(this.monitoredBolt.componentId + " failed to process tuple"));
+                monitor.endExecute(pair(input), getCustomAttributes(input), false);
             }
         }
         super.fail(input);
@@ -110,5 +110,9 @@ public class MonitoredOutputCollector extends OutputCollector {
 
     private PairKey pair(Tuple tuple) {
         return new PairKey(this.monitoredBolt, tuple);
+    }
+
+    public IOutputCollector getDelegate() {
+        return delegate;
     }
 }
