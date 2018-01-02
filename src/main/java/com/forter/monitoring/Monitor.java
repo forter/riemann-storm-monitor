@@ -138,9 +138,6 @@ public class Monitor implements EventSender {
         maxSize = (maxSizeConf == null ? MAX_SIZE_DEFAULT : (long) maxSizeConf);
         maxTime = (maxTimeConf == null ? MAX_TIME_DEFAULT : (long) maxTimeConf);
         maxConcurrency = (maxConcurrencyConf == null ? MAX_CONCURRENCY_DEFAULT: Ints.checkedCast((long) maxConcurrencyConf));
-
-        logger.info("Initializing latencies map with parameters maxSize: {}, maxTimeSeconds: {}, maxConcurrency: {}",
-                maxSize, maxTime, maxConcurrency);
     }
 
     public void startExecute(Object latencyId, Tuple tuple, String service) {
