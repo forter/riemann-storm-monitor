@@ -3,8 +3,8 @@ package com.forter.monitoring.utils;
 import com.google.common.base.Preconditions;
 
 public class PairKey {
-    private int obj1;
-    private int obj2;
+    private final int obj1;
+    private final int obj2;
 
     public PairKey(Object obj1, Object obj2) {
         Preconditions.checkNotNull(obj1, "obj1 is null");
@@ -20,7 +20,7 @@ public class PairKey {
 
         PairKey pairKey = (PairKey) o;
 
-        return (obj1 == pairKey.obj1 && obj2==pairKey.obj2);
+        return (obj1 == pairKey.obj1 && obj2 == pairKey.obj2);
     }
 
     @Override

@@ -7,8 +7,7 @@ import com.google.common.base.Throwables;
 import java.io.IOException;
 
 public class EventSenderSingleton {
-    private final RiemannConnection connection;
-    private EventSender sender;
+    private final EventSender sender;
 
     public EventSender getSender() {
         return this.sender;
@@ -23,12 +22,12 @@ public class EventSenderSingleton {
     }
 
     private EventSenderSingleton() {
-        this.connection = new RiemannConnection();
+        RiemannConnection connection = new RiemannConnection();
         try {
-            this.connection.connect(RiemannDiscovery.getInstance().getRiemannHost());
+            connection.connect(RiemannDiscovery.getInstance().getRiemannHost());
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }
-        this.sender = new RiemannEventSender(this.connection);
+        this.sender = new RiemannEventSender(connection);
     }
 }
