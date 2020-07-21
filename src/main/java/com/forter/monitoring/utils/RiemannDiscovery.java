@@ -6,7 +6,10 @@ import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.*;
-import com.google.common.base.*;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
 import java.io.BufferedReader;
@@ -15,10 +18,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.Collections;
 import java.util.List;
 
 import static com.google.common.base.Optional.of;
-import static java.util.Arrays.asList;
 
 /*
 This class represents the discovery of the riemann machine.
@@ -27,7 +30,7 @@ It is possible to use it to get the IP of a machine, based on its name / id.
 public class RiemannDiscovery {
     private final AmazonEC2 ec2Client;
     private final Object nameCacheLocker = new Object();
-    private Optional<String> retrievedName = null;
+    private Optional<String> retrievedName = Optional.absent();
 
     private static class SingletonHolder {
         private static final RiemannDiscovery INSTANCE = new RiemannDiscovery();
@@ -63,21 +66,18 @@ public class RiemannDiscovery {
     }
 
     public String retrieveMetadata(String metadata) throws IOException {
-        String result = "";
+        StringBuilder result = new StringBuilder();
         String inputLine;
         URL url = new URL("http://instance-data/latest/meta-data/" + metadata);
         URLConnection connection = url.openConnection();
-        BufferedReader in = new BufferedReader(new InputStreamReader(
-                connection.getInputStream()));
-        try {
+
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(
+            connection.getInputStream()))) {
             while ((inputLine = in.readLine()) != null) {
-                result += inputLine;
+                result.append(inputLine);
             }
         }
-        finally {
-            in.close();
-        }
-        return result;
+        return result.toString();
     }
 
     public boolean isAWS() {
@@ -87,9 +87,9 @@ public class RiemannDiscovery {
     }
 
     public Optional<String> retrieveName() throws IOException {
-        if (retrievedName != null) return retrievedName;
+        if (retrievedName.isPresent()) return retrievedName;
         synchronized (nameCacheLocker) {
-            if (retrievedName != null) return retrievedName;
+            if (retrievedName.isPresent()) return retrievedName;
             if (!isAWS()) {
                 retrievedName = Optional.absent();
             } else {
@@ -113,7 +113,7 @@ public class RiemannDiscovery {
 
     public Instance describeInstanceById(String instanceId) {
         final DescribeInstancesRequest request = new DescribeInstancesRequest();
-        request.setInstanceIds(asList(instanceId));
+        request.setInstanceIds(Collections.singletonList(instanceId));
         return Iterables.getOnlyElement(describeInstances(request));
     }
 
