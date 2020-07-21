@@ -1,4 +1,5 @@
 dist: focal
+os: linux
 language: java
 jdk:
   - openjdk11
@@ -16,14 +17,14 @@ script: mvn -B verify
 
 deploy:
   provider: s3
+  edge: true
   access_key_id:
     secure: "r4rfQSCKUhV8SVry9qK6en7aGDyag2whOR7GKFJ75SIfTRZZeUkz11qV27zEGyWke6isZOMsHS7L0A2Szw20+NPolYCl5IcI37uwrwrO2waagcUsgWqkJmZ21EfgF+0myIPmBrWnxae6BOcTuVmTcZycZOMS8lMgmtZxdpEjRu4="
   secret_access_key:
     secure: "yqFueGXnmdZMJRO/0/2lo2H2ZTBBwFtT4XJUzJvkgqxHUOvaE1I/hMw6MbyDgsMRPb5tqbmPeNyleVeg18N/ph9Mof/ak+KX35zXUNjh1wwlSK0AVfVtnbjPiJeKFXvAlX67W7oxvtR8fw6FieQB+A0/zm4g7kPKxOupPcAsYYI="
   bucket: oss.forter.com
-  local-dir: /home/travis/.m2/repository/com/forter/riemann-storm-monitor/
-  upload-dir: repository/com/forter/riemann-storm-monitor
-  skip_cleanup: true
+  local_dir: /home/travis/.m2/repository/com/forter/riemann-storm-monitor/
+  upload_dir: repository/com/forter/riemann-storm-monitor
   on:
     tags: true
     jdk: openjdk11
