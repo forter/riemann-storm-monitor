@@ -4,7 +4,7 @@
     <groupId>com.forter</groupId>
     <artifactId>riemann-storm-monitor</artifactId>
     <packaging>jar</packaging>
-    <version>0.11.0</version>
+    <version>0.11.1</version>
     <properties>
         <storm.version>1.2.2</storm.version>
         <storm.topology>com.forter.BrainTopology</storm.topology>
@@ -130,9 +130,13 @@
                     </arguments>
                 </configuration>
             </plugin>
+            <!-- Using 2.5.2 and not 3.0.0+ because need to create checksums in local repository for release -->
             <plugin>
                 <artifactId>maven-install-plugin</artifactId>
-                <version>3.0.0-M1</version>
+                <version>2.5.2</version>
+                <configuration>
+                    <createChecksum>true</createChecksum>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -178,7 +182,6 @@
             </releases>
             <snapshots>
                 <checksumPolicy>fail</checksumPolicy>
-                <enabled>true</enabled>
             </snapshots>
         </repository>
         <repository>
